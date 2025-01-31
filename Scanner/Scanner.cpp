@@ -12,7 +12,7 @@ std::unordered_map<std::string, TokenType> Scanner::keywords =
     {"for", TokenType::FOR},
     {"while", TokenType::WHILE},
     {"fun", TokenType::FUN},
-    {"nil", TokenType::NIL},
+    {"null", TokenType::NULL},
     {"print", TokenType::PRINT},
     {"return", TokenType::RETURN},
     {"class", TokenType::CLASS},
