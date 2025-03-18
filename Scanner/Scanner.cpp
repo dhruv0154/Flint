@@ -26,7 +26,7 @@ Scanner::Scanner(const std::string& source)
     this -> source = source;
 }
 
-std::vector<std::shared_ptr<Token>> Scanner::scanTokens()
+std::vector<Token> Scanner::scanTokens()
 {
     while(!isAtEnd())
     {
@@ -35,7 +35,7 @@ std::vector<std::shared_ptr<Token>> Scanner::scanTokens()
         scanToken();
     }
 
-    tokens.push_back(std::make_shared<Token>(TokenType::END_OF_FILE, "", nullptr, line));
+    tokens.push_back(Token(TokenType::END_OF_FILE, "", nullptr, line));
     return tokens;
 }
 
@@ -75,11 +75,15 @@ void Scanner::scanToken()
             }
             break;
 
+        case '"': string(); break;
         case ' ':
         case '\r':
-        case '\t': break;
-        case '\n': line++; break;
-        case '"': string(); break;
+        case '\t':
+            // ignore whitespace
+            break;
+        case '\n':
+            ++line;
+            break;
 
         default:
             if(isDigit(c))
@@ -159,7 +163,7 @@ void Scanner::string()
     advance();
 
     // Trim the "" from string.
-    std::string value = source.substr(start + 1, current - start - 1);
+    std::string value = source.substr(start + 1, current - start - 2);
     addToken(TokenType::STRING, value);
 }
 
@@ -243,5 +247,5 @@ void Scanner::addToken(TokenType type)
 void Scanner::addToken(TokenType type, std::any literal)
 {
     std::string text = source.substr(start, current - start);
-    tokens.emplace_back(std::make_shared<Token>(type, text, literal, line));
+    tokens.push_back(Token(type, text, literal, line));
 }

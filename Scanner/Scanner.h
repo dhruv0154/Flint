@@ -4,16 +4,17 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include <typeinfo>
 
 class Scanner
 {
     public:
         Scanner(const std::string& source);
-        std::vector<std::shared_ptr<Token>> scanTokens();
+        std::vector<Token> scanTokens();
 
     private:
         std::string source; // Source file in string form.
-        std::vector<std::shared_ptr<Token>> tokens; // List of all tokens.
+        std::vector<Token> tokens; // List of all tokens.
         static std::unordered_map<std::string, TokenType> keywords; // Map for all reserved words and their tokens.
         size_t start = 0; // Start of file.
         size_t current = 0; // Current character.

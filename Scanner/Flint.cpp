@@ -11,7 +11,7 @@ bool Flint::hadError = false;
 
 int main(int argc, char const *argv[])
 {
-    Flint::runFile("Scanner/test.txt");
+    Flint::runFile("test.txt");
     return 0;
 }
 
@@ -54,11 +54,11 @@ void Flint::runPrompt()
 void Flint::run(const std::string& source)
 {
     Scanner* scanner = new Scanner(source);
-    std::vector<std::shared_ptr<Token>> tokens = scanner -> scanTokens(); 
+    std::vector<Token> tokens = scanner -> scanTokens(); 
 
-    for (const std::shared_ptr<Token>& token : tokens)
+    for (const Token& token : tokens)
     {
-        std::cout << token -> toString() << std::endl; 
+        std::cout << token.toString() << std::endl; 
     }
 }
 
