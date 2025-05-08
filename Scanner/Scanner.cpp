@@ -147,25 +147,50 @@ char Scanner::peekNext()
 
 void Scanner::string()
 {
-    while(peek() != '"' && !isAtEnd())
+    std::string value;
+    while (!isAtEnd())
     {
-        if(peek() == '\n') line++;
-        advance();
+        char c = advance();
+
+        if (c == '"') break;
+
+        if (c == '\\') // start of an escape sequence
+        {
+            if (isAtEnd()) break;
+            char next = advance();
+            switch (next)
+            {
+                case 'n': value += '\n'; break;
+                case 't': value += '\t'; break;
+                case 'r': value += '\r'; break;
+                case '"': value += '"'; break;
+                case '\\': value += '\\'; break;
+                default:
+                    Flint::error(line, std::string("Invalid escape character: \\") + next);
+                    return;
+            }
+        }
+        else if (c == '\n')
+        {
+            line++; // Count new lines if any (unescaped ones are invalid)
+            Flint::error(line, "Unterminated string (unexpected newline).");
+            return;
+        }
+        else
+        {
+            value += c;
+        }
     }
 
-    if(isAtEnd())
+    if (isAtEnd() && source[current - 1] != '"')
     {
         Flint::error(line, "Unterminated string.");
         return;
     }
 
-    // Advance the closing " here.
-    advance();
-
-    // Trim the "" from string.
-    std::string value = source.substr(start + 1, current - start - 2);
     addToken(TokenType::STRING, value);
 }
+
 
 void Scanner::blockComments()
 {
