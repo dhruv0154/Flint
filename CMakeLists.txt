@@ -12,8 +12,4 @@ file(GLOB_RECURSE SOURCES src/**/*.cpp)
 # Create the executable
 add_executable(FlintInterpreter ${SOURCES})
 
-# Optional: output executable into build/bin/
-set_target_properties(FlintInterpreter PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
