@@ -1,4 +1,4 @@
-#include "Token.h"
+#include "Scanner\Token.h"
 #include <sstream>
 #include <C:\Flint\magic_enum-master\include\magic_enum\magic_enum.hpp>
 

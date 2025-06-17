@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Token.h"
+#include "Scanner\Token.h"
 #include <memory>
 #include <vector>
 #include <unordered_map>

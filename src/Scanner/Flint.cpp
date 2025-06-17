@@ -1,6 +1,6 @@
-#include "Flint.h"
-#include "Token.h"
-#include "Scanner.h"
+#include "Scanner\Flint.h"
+#include "Scanner\Flint.h"
+#include "Scanner\Scanner.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -11,7 +11,7 @@ bool Flint::hadError = false;
 
 int main(int argc, char const *argv[])
 {
-    Flint::runFile("test.txt");
+    Flint::runFile("C:\\Flint\\test.txt");
     return 0;
 }
 

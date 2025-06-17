@@ -1,5 +1,5 @@
-#include "Scanner.h"
-#include "Flint.h"
+#include "Scanner\Scanner.h"
+#include "Scanner\Flint.h"
 
 std::unordered_map<std::string, TokenType> Scanner::keywords = 
 {
