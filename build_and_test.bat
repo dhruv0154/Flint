@@ -13,6 +13,6 @@ REM Build the project
 cmake --build build
 
 REM Run the compiled executable
-build\bin\Debug\FlintInterpreter.exe
+build\Debug\FlintInterpreter.exe
 
 pause

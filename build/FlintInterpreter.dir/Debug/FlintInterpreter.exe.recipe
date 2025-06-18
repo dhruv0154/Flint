@@ -5,7 +5,7 @@
       <FullPath>C:\Flint\build\x64\Debug\ZERO_CHECK</FullPath>
     </ProjectOutput>
     <ProjectOutput>
-      <FullPath>C:\Flint\build\bin\Debug\FlintInterpreter.exe</FullPath>
+      <FullPath>C:\Flint\build\Debug\FlintInterpreter.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />
