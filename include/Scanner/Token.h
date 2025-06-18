@@ -3,7 +3,7 @@
 #include <string>
 #include <iostream>
 #include <any>
-#include "Scanner\TokenType.h"
+#include "TokenType.h"
 
 class Token
 {

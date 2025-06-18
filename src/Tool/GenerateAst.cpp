@@ -2,15 +2,34 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <algorithm>
+#include <cctype>
 #include <vector>
 
-void defineType(std::ofstream& writer, std::string baseName, std::string className, std::string fieldList)
+void defineForwardDecls(std::ofstream& writer, const std::string& baseName, const std::vector<std::string>& types)
 {
-    writer << "class " << className << " : public " << baseName << "\n{\n";
-    writer << "  public:\n";
+    writer << "// Forward declarations\n";
+    writer << "template <typename T> class " << baseName << ";\n";
+    writer << "template <typename T> class Visitor;\n";
+
+    for (const std::string& type : types)
+    {
+        size_t colon = type.find(':');
+        std::string className = type.substr(0, colon - 1); // extract class name before ':'
+        writer << "template <typename T> class " << className << ";\n";
+    }
+
+    writer << "\n";
+}
+
+void defineType(std::ofstream& writer, const std::string& baseName, const std::string& className, const std::string& fieldList)
+{
+    writer << "template <typename T>\n";
+    writer << "class " << className << " : public " << baseName << "<T>" << "\n{\n";
+    writer << "    public:\n";
 
     // Constructor using intializer list because Token doesnt has a default constructor 
-    writer << "    " << className << "(" << fieldList << ")";
+    writer << "        " << className << "(" << fieldList << ")";
     writer << " : ";
 
     std::istringstream ss(fieldList);
@@ -25,7 +44,10 @@ void defineType(std::ofstream& writer, std::string baseName, std::string classNa
         writer << name << "(" << name << ")";
         first = false;
     }
-    writer << " {}\n\n";
+    writer << " {}\n";
+
+    writer << "        T accept(Visitor<T>& visitor) override {";
+    writer << " return visitor.visit" + className + baseName + "(*this); }\n\n";
 
     // All the member variables
     ss.clear(); // clears EOF/fail flags so we can reuse ss
@@ -34,9 +56,31 @@ void defineType(std::ofstream& writer, std::string baseName, std::string classNa
     while (std::getline(ss, field, ',')) 
     {
         if(!first) field = field.substr(1);
-        writer << "  " << field << ";\n";
+        writer << "        " << field << ";\n";
         first = false;
     }
+
+    writer << "};\n\n";
+}
+
+void defineVisitor(std::ofstream& writer, const std::string baseName, const std::vector<std::string>& types)
+{
+    writer << "template <typename T> \nclass Visitor \n{\n";
+
+    auto lower = [](unsigned char c) { return std::tolower(c); };
+    std::string lowerCaseBaseName = baseName;
+    std::transform(lowerCaseBaseName.begin(), lowerCaseBaseName.end(), lowerCaseBaseName.begin(), lower);
+    writer << "    public:\n";
+
+    for(const std::string& type : types)
+    {
+        size_t colon = type.find(':');
+        std::string name = type.substr(0, colon - 1); // colon - 1 to remove the space
+        
+        writer << "        virtual T visit" + name + baseName + "(" + name + "<T>&" + " " + lowerCaseBaseName + ") = 0;\n";
+    }
+
+    writer << "        virtual ~Visitor() = default;\n";
 
     writer << "};\n\n";
 }
@@ -58,12 +102,18 @@ void defineAst(const std::string& outputDir, const std::string& baseName, const 
     writer << "#include <vector>\n";
     writer << "#include <string>\n";
     writer << "#include <any>\n";
-    writer << "#include \"Scanner/Token.h\"\n";
+    writer << "#include \"C:\\Flint\\include\\Scanner\\Token.h\"\n";
     writer << "\n";
+    defineForwardDecls(writer, baseName, types);
+
+    writer << "template <typename T> \n";
     writer << "class " << baseName << "\n{\n";
-    writer << "public:\n";
-    writer << "    virtual ~" << baseName << "() = default;\n";
+    writer << "    public:\n";
+    writer << "        virtual T accept(Visitor<T>& visitor) = 0;\n";
+    writer << "        virtual ~" << baseName << "() = default;\n";
     writer << "};\n\n";
+
+    defineVisitor(writer, baseName, types);
 
     // Seperating each sub className and fields of that class based on :
     for (const std::string& type : types) 
@@ -88,10 +138,10 @@ int main(int argc, char* argv[])
     std::string outputDir = argv[1];
     const std::vector<std::string> types = 
     {
-        "Binary : std::shared_ptr<Expr> left, Token op, std::shared_ptr<Expr> right",
-        "Grouping : std::shared_ptr<Expr> expression",
+        "Binary : std::shared_ptr<Expr<T>> left, Token op, std::shared_ptr<Expr<T>> right",
+        "Grouping : std::shared_ptr<Expr<T>> expression",
         "Literal : std::any value",
-        "Unary : Token op, std::shared_ptr<Expr> right"
+        "Unary : Token op, std::shared_ptr<Expr<T>> right"
     };
 
     defineAst(outputDir, "Expr", types);
