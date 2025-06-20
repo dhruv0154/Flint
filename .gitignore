@@ -9,3 +9,24 @@
 
 # Ignore text files
 *.txt
+
+# CMake build artifacts
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Visual Studio files
+.vs/
+*.vcxproj*
+*.sln
+
+# Binary output
+*.exe
+*.dll
+*.obj
+*.pdb
+*.lib
+*.out
+*.log

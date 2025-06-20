@@ -35,7 +35,7 @@ std::vector<Token> Scanner::scanTokens()
         scanToken();
     }
 
-    tokens.push_back(Token(TokenType::END_OF_FILE, "", nullptr, line));
+    tokens.push_back(Token(TokenType::END_OF_FILE, "", std::monostate{}, line));
     return tokens;
 }
 
@@ -266,10 +266,10 @@ char Scanner::advance()
 
 void Scanner::addToken(TokenType type)
 {
-    addToken(type, nullptr);
+    addToken(type, std::monostate{});
 }
 
-void Scanner::addToken(TokenType type, std::any literal)
+void Scanner::addToken(TokenType type, std::variant<std::monostate, std::string, int, double, std::nullptr_t> literal)
 {
     std::string text = source.substr(start, current - start);
     tokens.push_back(Token(type, text, literal, line));

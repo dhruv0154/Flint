@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 #include <string>
-#include <any>
+#include <variant>
 #include "C:\Flint\include\Scanner\Token.h"
 
 // Forward declarations
@@ -59,10 +59,10 @@ template <typename T>
 class Literal : public Expr<T>
 {
     public:
-        Literal(std::any value) : value(value) {}
+        Literal(std::variant<std::monostate,int,double,std::string> value) : value(value) {}
         T accept(Visitor<T>& visitor) override { return visitor.visitLiteralExpr(*this); }
 
-        std::any value;
+        std::variant<std::monostate,int,double,std::string> value;
 };
 
 template <typename T>

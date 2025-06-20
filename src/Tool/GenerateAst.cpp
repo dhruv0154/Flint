@@ -38,6 +38,13 @@ void defineType(std::ofstream& writer, const std::string& baseName, const std::s
 
     while (std::getline(ss, field, ',')) 
     {
+        if(className == "Literal")
+        {
+            size_t space= fieldList.find_last_of(' ');
+            std::string name = fieldList.substr(space + 1);
+            writer << name << "(" << name << ")";
+            break;
+        }
         size_t space = field.find_last_of(' '); // to find the last occurance of " " just before the variable name
         std::string name = field.substr(space + 1);
         if (!first) writer << ", ";
@@ -49,10 +56,18 @@ void defineType(std::ofstream& writer, const std::string& baseName, const std::s
     writer << "        T accept(Visitor<T>& visitor) override {";
     writer << " return visitor.visit" + className + baseName + "(*this); }\n\n";
 
+    if(className == "Literal")
+    {
+        writer << "        " << fieldList << ";\n";
+        writer << "};\n\n";
+        return;
+    }
+
     // All the member variables
     ss.clear(); // clears EOF/fail flags so we can reuse ss
     ss.seekg(0); // to send the cursor to 0 position again to reuse ss
     first = true;
+
     while (std::getline(ss, field, ',')) 
     {
         if(!first) field = field.substr(1);
@@ -101,7 +116,7 @@ void defineAst(const std::string& outputDir, const std::string& baseName, const 
     writer << "#include <memory>\n";
     writer << "#include <vector>\n";
     writer << "#include <string>\n";
-    writer << "#include <any>\n";
+    writer << "#include <variant>\n";
     writer << "#include \"C:\\Flint\\include\\Scanner\\Token.h\"\n";
     writer << "\n";
     defineForwardDecls(writer, baseName, types);
@@ -140,7 +155,7 @@ int main(int argc, char* argv[])
     {
         "Binary : std::shared_ptr<Expr<T>> left, Token op, std::shared_ptr<Expr<T>> right",
         "Grouping : std::shared_ptr<Expr<T>> expression",
-        "Literal : std::any value",
+        "Literal : std::variant<std::monostate,int,double,std::string> value",
         "Unary : Token op, std::shared_ptr<Expr<T>> right"
     };
 

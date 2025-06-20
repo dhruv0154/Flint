@@ -33,7 +33,7 @@ class Scanner
         void identifier(); // To handle indentifier(variable) tokens.
         char advance(); // Move to the next character and return the current one.
         void addToken(TokenType type); // Add a single token without literal in tokens vector.
-        void addToken(TokenType type, std::any literal);// Add a single token with literal in tokens vector.
+        void addToken(TokenType type, std::variant<std::monostate, std::string, int, double, std::nullptr_t> literal);// Add a single token with literal in tokens vector.
         void scanToken(); // Scan and identify the type of token which is in current index.
 
 };
