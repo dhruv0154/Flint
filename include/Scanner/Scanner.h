@@ -1,39 +1,47 @@
 #pragma once
 
-#include "Token.h"
 #include <memory>
 #include <vector>
 #include <unordered_map>
-#include <typeinfo>
+#include "Token.h"
+#include "Value.h"
 
 class Scanner
 {
-    public:
-        Scanner(const std::string& source);
-        std::vector<Token> scanTokens();
+public:
+    Scanner(const std::string& source); // Initialize with source code
+    std::vector<Token> scanTokens();    // Tokenize entire source
 
-    private:
-        std::string source; // Source file in string form.
-        std::vector<Token> tokens; // List of all tokens.
-        static std::unordered_map<std::string, TokenType> keywords; // Map for all reserved words and their tokens.
-        size_t start = 0; // Start of file.
-        size_t current = 0; // Current character.
-        size_t line = 1; // Number of line we are currently at.
+private:
+    std::string source;                         // Complete input source code
+    std::vector<Token> tokens;                  // List of generated tokens
+    static std::unordered_map<std::string, TokenType> keywords; // Reserved keywords mapping
+    size_t start = 0;                           // Start index of current lexeme
+    size_t current = 0;                         // Index of character being processed
+    size_t line = 1;                            // Line number (for error reporting)
 
-        bool isAtEnd(); // To check if we have reached at the end of source file.
-        bool isDigit(char c); // To check if the current char is a digit or not.
-        bool isAlpha(char c); // To check if the current char is a alphabet or _.
-        bool isAlphaNumeric(char c); // To check if the current chat is alphabet or number.
-        bool match(char expected); // To compare the next character with the expected one and skip it.
-        char peek(); // To see a character ahead of the current one.
-        char peekNext(); // To see two characters ahead of the current one.
-        void string(); // To handle string literals token.
-        void blockComments(); // Tp handle mutli line comments.
-        void number(); // Simlar to string this is used to handle number literals tokens.
-        void identifier(); // To handle indentifier(variable) tokens.
-        char advance(); // Move to the next character and return the current one.
-        void addToken(TokenType type); // Add a single token without literal in tokens vector.
-        void addToken(TokenType type, std::variant<std::monostate, std::string, int, double, std::nullptr_t> literal);// Add a single token with literal in tokens vector.
-        void scanToken(); // Scan and identify the type of token which is in current index.
+    // High-level scanning
+    void scanToken();                           // Process one token
+    bool isAtEnd();                             // Check if we’ve reached the end
 
+    // Character inspection
+    char advance();                             // Consume and return current char
+    char peek();                                // Look at current char without advancing
+    char peekNext();                            // Look two characters ahead
+    bool match(char expected);                  // Conditionally consume next char if matched
+
+    // Classification
+    bool isDigit(char c);                       // Check if char is a digit
+    bool isAlpha(char c);                       // Check if char is alphabet or '_'
+    bool isAlphaNumeric(char c);                // Check if char is alphanumeric or '_'
+
+    // Token creators
+    void addToken(TokenType type);              // Add token without literal
+    void addToken(TokenType type, LiteralValue literal); // Add token with literal
+
+    // Lexeme handlers
+    void string();                              // Handle string literals
+    void number();                              // Handle number literals
+    void identifier();                          // Handle identifiers and keywords
+    void blockComments();                       // Handle nested /* */ comments
 };
