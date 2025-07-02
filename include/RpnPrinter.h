@@ -1,8 +1,10 @@
+#pragma once
+
 #include <string>
 #include <sstream>
 #include <iomanip>
 #include <variant>
-#include "C:\\Flint\\include\\Scanner\\generated\\Expr.h"
+#include "ExpressionNode.h"
 
 // Prints expressions in Reverse Polish Notation (RPN)
 struct RpnPrinter

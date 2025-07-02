@@ -1,44 +1,22 @@
 #pragma once
 
-#include "C:\Flint\include\Scanner\generated\Expr.h"
+#include <memory>
+#include "ExpressionNode.h"
 
-struct Evaluator 
+class Evaluator 
 {
-    LiteralValue operator()(const Binary& expr) const 
-    {
-        LiteralValue left = evaluate(*expr.left);
-        LiteralValue right = evaluate(*expr.right);
+public:
+    LiteralValue operator()(const Binary& expr) const;
+    LiteralValue operator()(const Conditional& expr) const;
+    LiteralValue operator()(const Unary& expr) const;
+    LiteralValue operator()(const Literal& expr) const;
+    LiteralValue operator()(const Grouping& expr) const;
 
-        if (expr.op.type == TokenType::PLUS)
-            return std::get<double>(left) + std::get<double>(right);
-        else if (expr.op.type == TokenType::MINUS)
-            return std::get<double>(left) - std::get<double>(right);
-        else if (expr.op.type == TokenType::STAR)
-            return std::get<double>(left) * std::get<double>(right);
-        else if (expr.op.type == TokenType::SLASH)
-            return std::get<double>(left) / std::get<double>(right);
-        return std::monostate{};
-    }
+    LiteralValue evaluate(const ExpressionNode& expr) const;
+    LiteralValue evaluate(const std::shared_ptr<ExpressionNode>& ptr) const;
 
-    LiteralValue operator()(const Unary& expr) const 
-    {
-        LiteralValue right = evaluate(*expr.right);
-        if (expr.op.type == TokenType::MINUS)
-            return -std::get<double>(right);
-        if (expr.op.type == TokenType::BANG)
-            return !std::get<bool>(right);
-        return std::monostate{};
-    }
-
-    LiteralValue operator()(const Literal& expr) const {
-        return expr.value;
-    }
-
-    LiteralValue operator()(const Grouping& expr) const {
-        return evaluate(*expr.expression);
-    }
-
-    LiteralValue evaluate(const ExpressionNode& expr) const {
-        return std::visit(*this, expr);
-    }
+    bool isTruthy(const LiteralValue& value) const;
+    bool isEqual(const LiteralValue& left, const LiteralValue& right) const;
+    template<typename... Operands>
+    void checkOperandType(const Token& op, const Operands&... operands) const;
 };

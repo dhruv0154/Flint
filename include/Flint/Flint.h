@@ -2,6 +2,8 @@
 
 #include <string>
 #include <vector>
+#include "RuntimeError.h"
+#include "Interpreter/Interpreter.h"
 
 // Provides core control functions for running source code and handling errors
 class Flint
@@ -22,6 +24,9 @@ public:
     // Reports an error on a specific token
     static void error(Token token, const std::string& message);
 
+    // Reports a runtime error
+    static void runtimeError(RuntimeError error);
+
     // Outputs a detailed error message with line number and context
     static void report(int line, const std::string& where, const std::string& message);
 
@@ -30,5 +35,7 @@ public:
 
 private:
     // Flag indicating whether any error has occurred
+    static const std::unique_ptr<Interpreter> interpreter;
     static bool hadError;
+    static bool hadRuntimeError;
 };

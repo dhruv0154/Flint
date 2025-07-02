@@ -1,5 +1,5 @@
-#include "C:\Flint\include\AstPrinter.h"
-#include "C:\Flint\include\Evaluator.h"
+#include "AstPrinter.h"
+#include "Evaluator.h"
 
 
 using Value = std::variant<std::monostate, std::string, double, int>; // Represents different literal types

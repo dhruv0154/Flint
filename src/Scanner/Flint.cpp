@@ -16,19 +16,20 @@
 #include <sstream>               // String‑stream buffer helpers
 #include <stdexcept>             // Standard exception types
 #include <vector>                // `std::vector` container for token list
-#include "C:\Flint\include\Scanner\Scanner.h"     // Tokenizer for the Flint language
-#include "C:\Flint\include\Scanner\Flint.h"       // Declarations for the Flint class
-#include "C:\Flint\include\Parser\Parser.h"
-#include "C:\Flint\include\AstPrinter.h"
-#include "C:\Flint\include\RpnPrinter.h"
-#include "C:\Flint\include\Evaluator.h"
-#
+#include "Scanner\Scanner.h"     // Tokenizer for the Flint language
+#include "Flint\Flint.h"       // Declarations for the Flint class
+#include "Parser\Parser.h"
+// #include "AstPrinter.h"
+// #include "RpnPrinter.h"
+#include "Evaluator.h"
 
 // ---------------------------------------------------------------------------
 // Static error flag: becomes true if any error is reported during execution.
 // Externally visible so other translation units (if any) can read it.
 // ---------------------------------------------------------------------------
 bool Flint::hadError = false;
+bool Flint::hadRuntimeError = false;
+const std::unique_ptr<Interpreter> Flint::interpreter = std::make_unique<Interpreter>();
 
 /* ===========================================================================
  *  Program Entry Point (global `main`)
@@ -74,6 +75,10 @@ void Flint::runFile(const std::string& path)
     {
         exit(65);
     }
+    if(hadRuntimeError)
+    {
+        exit(70);
+    }
 }
 
 /* ===========================================================================
@@ -107,24 +112,17 @@ void Flint::runPrompt()
  *  string representation to stdout so we can verify that scanning works as
  *  expected.
  * ===========================================================================*/
-void Flint::run(const std::string& source)
+void Flint::run(const std::string& source) 
 {
-    // `std::unique_ptr` for automatic memory management in production code.
-    std::unique_ptr<Scanner> scanner = std::make_unique<Scanner>(source);
-    std::vector<Token> tokens = scanner -> scanTokens(); 
+    auto scanner = std::make_unique<Scanner>(source);
+    auto tokens  = scanner->scanTokens();
+    auto parser  = std::make_unique<Parser>(tokens);
 
-    std::unique_ptr<Parser> parser = std::make_unique<Parser>(tokens);
-    std::shared_ptr<ExpressionNode> expression = parser -> parse();
 
     if(hadError) return;
 
-    AstPrinter printer;
-    RpnPrinter rpn;
-    Evaluator evl;
-
-    std::cout << printer.print(*expression) << "\n";
-    std::cout << rpn.convert(*expression) << "\n";
-    std::cout << std::get<double>(evl.evaluate(*expression)) << "\n";
+    auto expr = parser -> parse();
+    interpreter -> interpret(expr);
 }
 
 /* ===========================================================================
@@ -142,6 +140,12 @@ void Flint::error(Token token, const std::string& message)
 {
     if(token.type == TokenType::END_OF_FILE) report(token.line, "At the end of file", message);
     else report(token.line, "at '" + token.lexeme + "'", message);
+}
+
+void Flint::runtimeError(RuntimeError error)
+{
+    std::cerr << "[line " << error.token.line << "] : " << error.what() << std::endl;
+    hadRuntimeError = true;
 }
 
 void Flint::report(int line, const std::string& where, const std::string& message)

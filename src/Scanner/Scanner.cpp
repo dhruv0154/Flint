@@ -8,7 +8,7 @@
 // ------------------------------------------------------------
 
 #include "Scanner\Scanner.h"   // Header for Scanner class and token logic
-#include "Scanner\Flint.h"     // Access to error reporting
+#include "Flint\Flint.h"     // Access to error reporting
 
 // ---------------------------------------------------------------------------
 // Initialize keyword map: reserved words that have specific token types.
@@ -23,14 +23,14 @@ std::unordered_map<std::string, TokenType> Scanner::keywords =
     {"false", TokenType::FALSE},
     {"for", TokenType::FOR},
     {"while", TokenType::WHILE},
-    {"fun", TokenType::FUN},
+    {"func", TokenType::FUNC},
     {"nothing", TokenType::NOTHING},
     {"print", TokenType::PRINT},
     {"return", TokenType::RETURN},
     {"class", TokenType::CLASS},
     {"super", TokenType::SUPER},
     {"this", TokenType::THIS},
-    {"var", TokenType::VAR}
+    {"let", TokenType::LET}
 };
 
 // ---------------------------------------------------------------------------
@@ -75,6 +75,9 @@ void Scanner::scanToken()
         case '-': addToken(TokenType::MINUS); break;
         case ';': addToken(TokenType::SEMICOLON); break;
         case '*': addToken(TokenType::STAR); break;
+        case ':': addToken(TokenType::COLON); break;
+        case '?': addToken(TokenType::QUESTION_MARK); break;
+
 
         // Handle !, !=, =, ==, <, <=, >, >= operators
         case '!': addToken(match('=') ? TokenType::BANG_EQUAL : TokenType::BANG); break;
@@ -282,7 +285,7 @@ void Scanner::number()
     if(peek() == '.' && isDigit(peekNext()))
     {
         advance();
-        while(isDigit(peekNext())) advance();
+        while(isDigit(peek())) advance();
     }
 
     addToken(TokenType::NUMBER, std::stod(source.substr(start, current - start)));

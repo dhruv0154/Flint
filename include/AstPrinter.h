@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "C:\Flint\include\Scanner\generated\Expr.h"
+#include "ExpressionNode.h"
 
 struct AstPrinter {
     std::string operator()(const Binary& expr) const {

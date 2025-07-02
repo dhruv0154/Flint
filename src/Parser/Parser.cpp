@@ -1,64 +1,129 @@
-#include "C:\Flint\include\Parser\Parser.h"
-#include "C:\Flint\include\Scanner\Flint.h"
+#include "Parser\Parser.h"
+#include "Flint\Flint.h"
 
 std::shared_ptr<ExpressionNode> Parser::expression()
 {
-    return equality();
+    return conditional();
+}
+
+std::shared_ptr<ExpressionNode> Parser::conditional()
+{
+    std::shared_ptr<ExpressionNode> expr = comma();
+
+    // Ternary is right-associative: use if, not while
+    if (match({ TokenType::QUESTION_MARK }))
+    {
+        std::shared_ptr<ExpressionNode> thenBranch = conditional();
+        consume(TokenType::COLON, "Expected ':' after then branch of ternary operator.");
+        std::shared_ptr<ExpressionNode> elseBranch = conditional(); // Recursive
+        expr = makeExpr<Conditional>(expr, thenBranch, elseBranch);
+    }
+
+    return expr;
+}
+
+
+std::shared_ptr<ExpressionNode> Parser::comma()
+{
+    // Error production: leading comma
+    if (match({ TokenType::COMMA })) {
+        Token op = previous();
+        error(op, "Missing left-hand operand before ','.");
+        // Recover by parsing RHS
+        return equality();
+    }
+
+    // Normal comma parsing
+    auto expr = equality();
+    while (match({ TokenType::COMMA })) {
+        Token op = previous();
+        auto right = equality();
+        expr = makeExpr<Binary>(expr, op, right);
+    }
+    return expr;
 }
 
 std::shared_ptr<ExpressionNode> Parser::equality()
 {
-    std::shared_ptr<ExpressionNode> expr = comparison();
-
-    while(match({ TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL }))
-    {
+    // Error production: leading == or !=
+    if (match({ TokenType::EQUAL_EQUAL, TokenType::BANG_EQUAL })) {
         Token op = previous();
-        std::shared_ptr<ExpressionNode> right = comparison();
-        expr = std::make_shared<ExpressionNode>(Binary{expr, op, right});
+        error(op, "Missing left-hand operand before '" + op.lexeme + "'.");
+        return comparison();
     }
 
+    // Normal equality parsing
+    auto expr = comparison();
+    while (match({ TokenType::EQUAL_EQUAL, TokenType::BANG_EQUAL })) {
+        Token op = previous();
+        auto right = comparison();
+        expr = makeExpr<Binary>(expr, op, right);
+    }
     return expr;
 }
 
 std::shared_ptr<ExpressionNode> Parser::comparison()
 {
-    std::shared_ptr<ExpressionNode> expr = term();
-
-    while(match({ TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS, TokenType::LESS_EQUAL }))
+    // Error production: leading <, <=, >, >=
+    if (match({ 
+            TokenType::LESS, TokenType::LESS_EQUAL, 
+            TokenType::GREATER, TokenType::GREATER_EQUAL 
+        })) 
     {
         Token op = previous();
-        std::shared_ptr<ExpressionNode> right = term();
-        expr = std::make_shared<ExpressionNode>(Binary{expr, op, right});
+        error(op, "Missing left-hand operand before '" + op.lexeme + "'.");
+        return term();
     }
 
+    // Normal comparison parsing
+    auto expr = term();
+    while (match({
+            TokenType::LESS, TokenType::LESS_EQUAL,
+            TokenType::GREATER, TokenType::GREATER_EQUAL
+        }))
+    {
+        Token op = previous();
+        auto right = term();
+        expr = makeExpr<Binary>(expr, op, right);
+    }
     return expr;
 }
 
 std::shared_ptr<ExpressionNode> Parser::term()
 {
-    std::shared_ptr<ExpressionNode> expr = factor();
-
-    while(match({ TokenType::PLUS, TokenType::MINUS }))
-    {
+    // Error production: leading + or -
+    if (match({ TokenType::PLUS, TokenType::MINUS })) {
         Token op = previous();
-        std::shared_ptr<ExpressionNode> right = factor();
-        expr = std::make_shared<ExpressionNode>(Binary{expr, op, right});
+        error(op, "Missing left-hand operand before '" + op.lexeme + "'.");
+        return factor();
     }
 
+    // Normal term parsing
+    auto expr = factor();
+    while (match({ TokenType::PLUS, TokenType::MINUS })) {
+        Token op = previous();
+        auto right = factor();
+        expr = makeExpr<Binary>(expr, op, right);
+    }
     return expr;
 }
 
 std::shared_ptr<ExpressionNode> Parser::factor()
 {
-    std::shared_ptr<ExpressionNode> expr = unary();
-
-    while(match({ TokenType::SLASH, TokenType::STAR }))
-    {
+    // Error production: leading * or /
+    if (match({ TokenType::STAR, TokenType::SLASH })) {
         Token op = previous();
-        std::shared_ptr<ExpressionNode> right = unary();
-        expr = std::make_shared<ExpressionNode>(Binary{expr, op, right});
+        error(op, "Missing left-hand operand before '" + op.lexeme + "'.");
+        return unary();
     }
 
+    // Normal factor parsing
+    auto expr = unary();
+    while (match({ TokenType::STAR, TokenType::SLASH })) {
+        Token op = previous();
+        auto right = unary();
+        expr = makeExpr<Binary>(expr, op, right);
+    }
     return expr;
 }
 
@@ -68,7 +133,7 @@ std::shared_ptr<ExpressionNode> Parser::unary()
     {
         Token op = previous();
         std::shared_ptr<ExpressionNode> right = unary();
-        return std::make_shared<ExpressionNode>(Unary{op, right});
+        return makeExpr<Unary>(op, right);
     }
 
     return primary();
@@ -77,22 +142,22 @@ std::shared_ptr<ExpressionNode> Parser::unary()
 std::shared_ptr<ExpressionNode> Parser::primary()
 {
     if(match({ TokenType::FALSE }))
-        return std::make_shared<ExpressionNode>(Literal{false});
+        return makeExpr<Literal>(false);
 
     if(match({ TokenType::TRUE }))
-        return std::make_shared<ExpressionNode>(Literal{true});;
+        return makeExpr<Literal>(true);
 
     if(match({ TokenType::NOTHING }))
-        return std::make_shared<ExpressionNode>(Literal{std::monostate{}});
+        return makeExpr<Literal>(std::monostate{});
 
     if(match({ TokenType::NUMBER, TokenType::STRING }))
-        return std::make_shared<ExpressionNode>(Literal{previous().literal});
+        return makeExpr<Literal>(previous().literal);
 
     if(match({ TokenType::LEFT_PAREN }))
     {
         std::shared_ptr<ExpressionNode> expr = expression();
         consume(TokenType::RIGHT_PAREN, "Expected a ')'.");
-        return std::make_shared<ExpressionNode>(Grouping{expr});
+        return makeExpr<Grouping>(expr);
     }
 
     throw error(peek(), "Expected an expression.");
@@ -153,8 +218,8 @@ void Parser::synchronize()
         switch (previous().type)
         {
         case TokenType::CLASS:
-        case TokenType::FUN:
-        case TokenType::VAR:
+        case TokenType::FUNC:
+        case TokenType::LET:
         case TokenType::FOR:
         case TokenType::IF:
         case TokenType::WHILE:
@@ -165,6 +230,13 @@ void Parser::synchronize()
         advance();
     }
 }
+
+template<typename T, typename... Args>
+std::shared_ptr<ExpressionNode> Parser::makeExpr(Args&&... args) 
+{
+    return std::make_shared<ExpressionNode>(T{std::forward<Args>(args)...});
+}
+
 
 Parser::ParseError Parser::error(Token token, std::string message)
 {

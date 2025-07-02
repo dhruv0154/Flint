@@ -3,9 +3,10 @@
 #include <iostream>
 #include <vector>
 #include <memory>
-#include "C:\Flint\include\Scanner\TokenType.h"
-#include "C:\Flint\include\Scanner\Token.h"
-#include "C:\Flint\include\Scanner\generated\Expr.h"
+#include <functional>
+#include "Scanner\TokenType.h"
+#include "Scanner\Token.h"
+#include "ExpressionNode.h"
 
 class Parser
 {
@@ -22,6 +23,8 @@ private:
 
     
     std::shared_ptr<ExpressionNode> expression();
+    std::shared_ptr<ExpressionNode> conditional();
+    std::shared_ptr<ExpressionNode> comma();
     std::shared_ptr<ExpressionNode> equality();
     std::shared_ptr<ExpressionNode> comparison();
     std::shared_ptr<ExpressionNode> term();
@@ -30,7 +33,6 @@ private:
     std::shared_ptr<ExpressionNode> primary();
     bool match(const std::vector<TokenType>& types);
     bool check(TokenType type);
-    bool isAtEnd();
     Token advance();
     Token consume(TokenType type, std::string message);
     Token peek();
@@ -38,7 +40,11 @@ private:
     void synchronize();
     [[nodiscard]] Parser::ParseError error(Token token, std::string message);
 
+    template<typename T, typename... Args>
+    std::shared_ptr<ExpressionNode> makeExpr(Args&&... args);
+
 public:
+    bool isAtEnd();
     std::shared_ptr<ExpressionNode> parse();
     Parser(std::vector<Token> tokens) : tokens(tokens) {};
     ~Parser() = default;

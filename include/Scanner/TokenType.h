@@ -12,6 +12,8 @@ enum class TokenType
     DOT,           // .
     MINUS,         // -
     PLUS,          // +
+    COLON,         // :
+    QUESTION_MARK, // ?
     SEMICOLON,     // ;
     SLASH,         // /
     STAR,          // *
@@ -36,7 +38,7 @@ enum class TokenType
     CLASS,
     ELSE,
     FALSE,
-    FUN,
+    FUNC,
     FOR,
     IF,
     NOTHING,
@@ -46,7 +48,7 @@ enum class TokenType
     SUPER,
     THIS,
     TRUE,
-    VAR,
+    LET,
     WHILE,
 
     // Special token to indicate the end of input
