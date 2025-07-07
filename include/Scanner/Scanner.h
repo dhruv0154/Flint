@@ -1,5 +1,20 @@
 #pragma once
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Scanner (Lexer)
+// ─────────────────────────────────────────────────────────────────────────────
+//  Responsible for converting raw source code into a list of tokens.
+//  This is the first step of the frontend pipeline.
+//
+//  This class implements a hand-written scanner (lexer) that recognizes:
+//  - Operators (+, -, ==, etc.)
+//  - Punctuators (parens, braces, semicolons)
+//  - Keywords (let, print, etc.)
+//  - Identifiers, strings, and numbers
+//
+//  Comments, whitespace, and invalid tokens are also handled here.
+// ─────────────────────────────────────────────────────────────────────────────
+
 #include <memory>
 #include <vector>
 #include <unordered_map>
@@ -9,39 +24,60 @@
 class Scanner
 {
 public:
-    Scanner(const std::string& source); // Initialize with source code
-    std::vector<Token> scanTokens();    // Tokenize entire source
+    // ─────────────────────────────────────────────────────────────
+    // Constructor
+    // ─────────────────────────────────────────────────────────────
+    Scanner(const std::string& source);  // Initializes scanner with raw source code
+
+    // ─────────────────────────────────────────────────────────────
+    // Public Entry Point
+    // ─────────────────────────────────────────────────────────────
+    std::vector<Token> scanTokens();     // Tokenizes the entire source and returns list
 
 private:
-    std::string source;                         // Complete input source code
-    std::vector<Token> tokens;                  // List of generated tokens
-    static std::unordered_map<std::string, TokenType> keywords; // Reserved keywords mapping
-    size_t start = 0;                           // Start index of current lexeme
-    size_t current = 0;                         // Index of character being processed
-    size_t line = 1;                            // Line number (for error reporting)
+    // ─────────────────────────────────────────────────────────────
+    // Internal State
+    // ─────────────────────────────────────────────────────────────
+    std::string source;  // The complete source code string
+    std::vector<Token> tokens;  // Accumulated list of tokens
+    static std::unordered_map<std::string, TokenType> keywords;  // Maps keyword strings to token types
 
-    // High-level scanning
-    void scanToken();                           // Process one token
-    bool isAtEnd();                             // Check if we’ve reached the end
+    size_t start = 0;    // Start index of the current lexeme
+    size_t current = 0;  // Current index being scanned
+    size_t line = 1;     // Current line number (used for error reporting)
 
-    // Character inspection
-    char advance();                             // Consume and return current char
-    char peek();                                // Look at current char without advancing
-    char peekNext();                            // Look two characters ahead
-    bool match(char expected);                  // Conditionally consume next char if matched
+    // ─────────────────────────────────────────────────────────────
+    // Main Tokenization Loop
+    // ─────────────────────────────────────────────────────────────
+    void scanToken();    // Scans one token at a time
+    bool isAtEnd();      // True if we've reached the end of input
 
-    // Classification
-    bool isDigit(char c);                       // Check if char is a digit
-    bool isAlpha(char c);                       // Check if char is alphabet or '_'
-    bool isAlphaNumeric(char c);                // Check if char is alphanumeric or '_'
+    // ─────────────────────────────────────────────────────────────
+    // Character Handling Helpers
+    // ─────────────────────────────────────────────────────────────
+    char advance();      // Consumes and returns current character
+    char peek();         // Returns current character without advancing
+    char peekNext();     // Peeks one character ahead
+    bool match(char expected);  // If next char matches, consume it
 
-    // Token creators
-    void addToken(TokenType type);              // Add token without literal
-    void addToken(TokenType type, LiteralValue literal); // Add token with literal
+    // ─────────────────────────────────────────────────────────────
+    // Character Classification
+    // ─────────────────────────────────────────────────────────────
+    bool isDigit(char c);         // 0–9
+    bool isAlpha(char c);         // a–z, A–Z, _
+    bool isAlphaNumeric(char c);  // isAlpha || isDigit
 
-    // Lexeme handlers
-    void string();                              // Handle string literals
-    void number();                              // Handle number literals
-    void identifier();                          // Handle identifiers and keywords
-    void blockComments();                       // Handle nested /* */ comments
+    // ─────────────────────────────────────────────────────────────
+    // Token Emitters
+    // ─────────────────────────────────────────────────────────────
+    void addToken(TokenType type);                        // Token without literal
+    void addToken(TokenType type, LiteralValue literal);  // Token with literal (e.g. number, string)
+
+    // ─────────────────────────────────────────────────────────────
+    // Lexeme Handlers
+    // ─────────────────────────────────────────────────────────────
+    void string();      // Handles string literals (enclosed in double quotes)
+    void number();      // Handles numeric literals (integers, decimals)
+    void identifier();  // Handles identifiers and reserved keywords
+    void blockComments(); // Handles nested block comments (/* ... */)
 };
