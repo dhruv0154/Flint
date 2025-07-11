@@ -42,7 +42,14 @@ const std::unique_ptr<Interpreter> Flint::interpreter = std::make_unique<Interpr
 // ─────────────────────────────────────────────────────────────────────────────
 int main(int argc, char const *argv[])
 {
-    Flint::runFile("C:\\Flint\\test.txt");
+    if (argc > 1)
+    {
+        Flint::runFile(argv[1]);
+    }
+    else
+    {
+        Flint::runPrompt();
+    }
     return 0;
 }
 
@@ -79,21 +86,23 @@ void Flint::runFile(const std::string& path)
 // Launches a simple REPL (Read-Eval-Print Loop). Terminates on EOF.
 // After each line, resets the `hadError` flag so the REPL doesn't exit on error.
 // ─────────────────────────────────────────────────────────────────────────────
+// TODO: make expression print output without using print explicitly
 void Flint::runPrompt()
 {
     std::string line;
 
     while (true)
     {
-        std::cout << "> ";
-        std::getline(std::cin, line);
-
-        if (line.empty() && std::cin.eof()) break;
+        std::cout << "flint > ";
+        if (!std::getline(std::cin, line) || line.empty())
+            break;
 
         run(line);
         hadError = false;
+        hadRuntimeError = false;
     }
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Flint::run
@@ -112,9 +121,14 @@ void Flint::run(const std::string& source)
 
     auto statements = parser->parse();
 
-    if (hadError) return;
+    // Filter out invalid (nullptr) statements
+    std::vector<std::shared_ptr<Statement>> validStatements;
+    for (auto& stmt : statements) {
+        if (stmt) validStatements.push_back(stmt);
+    }
 
-    interpreter->interpret(statements);
+    if (!validStatements.empty())
+        interpreter->interpret(validStatements);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

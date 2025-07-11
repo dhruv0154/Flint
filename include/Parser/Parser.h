@@ -45,15 +45,19 @@ private:
     // Recursive Descent Parsing Methods (Expressions)
     // Ordered from lowest to highest precedence
     // ─────────────────────────────────────────────────────────────
-    std::shared_ptr<ExpressionNode> expression();      // entry point
-    std::shared_ptr<ExpressionNode> conditional();     // ternary (?:)
-    std::shared_ptr<ExpressionNode> comma();           // comma operator
-    std::shared_ptr<ExpressionNode> equality();        // ==, !=
-    std::shared_ptr<ExpressionNode> comparison();      // <, <=, >, >=
-    std::shared_ptr<ExpressionNode> term();            // +, -
-    std::shared_ptr<ExpressionNode> factor();          // *, /, %
-    std::shared_ptr<ExpressionNode> unary();           // !, -
-    std::shared_ptr<ExpressionNode> primary();         // literals, parens, identifiers
+    ExprPtr expression();      // entry point
+    ExprPtr assignment();      // =
+    ExprPtr conditional();     // ternary (?:)
+    ExprPtr logicalOr();       // 'or' OR logical operator
+    ExprPtr logicalAnd();      // 'and' AND logical operator
+    ExprPtr comma();           // comma operator
+    ExprPtr equality();        // ==, !=
+    ExprPtr comparison();      // <, <=, >, >=
+    ExprPtr term();            // +, -
+    ExprPtr factor();          // *, /, %
+    ExprPtr unary();           // !, -
+    ExprPtr call();           // function call ()
+    ExprPtr primary();         // literals, parens, identifiers
 
     // ─────────────────────────────────────────────────────────────
     // Token Utility Helpers
@@ -67,6 +71,11 @@ private:
     bool isAtEnd();                                    // EOF check
 
     // ─────────────────────────────────────────────────────────────
+    // Function call Helpers
+    // ─────────────────────────────────────────────────────────────
+    ExprPtr finishCall(ExprPtr callee);
+    
+    // ─────────────────────────────────────────────────────────────
     // Error Handling
     // ─────────────────────────────────────────────────────────────
     [[nodiscard]] Parser::ParseError error(Token token, std::string message); // raise ParseError
@@ -78,9 +87,15 @@ private:
     std::shared_ptr<Statement> declareStatement();      // entry point for top-level stmt
     std::shared_ptr<Statement> parseVarDeclaration();   // `let` statement
     std::shared_ptr<Statement> parseStatement();        // generic statement
+    std::shared_ptr<Statement> ifStatement();           // 'if' condition statement
+    std::shared_ptr<Statement> whileStatement();        // 'while' loop statement
+    std::shared_ptr<Statement> breakStatement();        // 'break' statement
+    std::shared_ptr<Statement> continueStatement();      // 'continue' statement
+    std::shared_ptr<Statement> forStatement();          // 'for' loop statement
     std::shared_ptr<Statement> printStatement();        // `print` statement
     std::shared_ptr<Statement> expressionStatement();   // expr followed by `;`
-
+    std::vector<std::shared_ptr<Statement>> blockStatement(); // block of statements starts with '{' ends with '}'
+    
     // ─────────────────────────────────────────────────────────────
     // AST Node Construction Helpers (Factory Methods)
     // Used to construct variant-wrapped expressions or statements

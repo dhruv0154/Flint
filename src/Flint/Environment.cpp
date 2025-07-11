@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Environment::define
 // ─────────────────────────────────────────────────────────────────────────────
-//  Adds a new variable (or updates an existing one) in the current scope.
+//  Adds a new variable in the current scope.
 //  - @param name  : variable name as a string
 //  - @param value : associated value (LiteralValue)
 //
@@ -33,8 +33,57 @@ void Environment::define(std::string name, LiteralValue value)
 // ─────────────────────────────────────────────────────────────────────────────
 LiteralValue Environment::get(Token name)
 {
-    if (values.count(name.lexeme))
+    if (values.count(name.lexeme)) 
+    {
+        if(std::holds_alternative<nullptr_t>(values[name.lexeme]) 
+            || std::holds_alternative<std::monostate>(values[name.lexeme]))
+        {
+            throw RuntimeError(name, "Variable '" + name.lexeme + "' has no value assigned to it.");
+        }
         return values[name.lexeme];
+    }
+    if(enclosing) return enclosing -> get(name);
 
     throw RuntimeError(name, "Unknown variable '" + name.lexeme + "'.");
+}
+
+std::optional<LiteralValue> Environment::getOptional(const std::string& name) const 
+{
+    if (values.find(name) != values.end()) {
+        return values.at(name);
+    }
+    if (enclosing != nullptr) {
+        return enclosing->getOptional(name);
+    }
+    return std::nullopt;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Environment::define
+// ─────────────────────────────────────────────────────────────────────────────
+//  Reassign a new value to an exisitng variable in current scope.
+//  - @param name  : variable name as a Token
+//  - @param value : new value (LiteralValue)
+//
+//  Throws:
+//      RuntimeError if the variable is not found.
+//  Usage:
+//      env.assign(token, 42); 
+// ─────────────────────────────────────────────────────────────────────────────
+void Environment::assign(Token name, LiteralValue value)
+{
+    if(values.count(name.lexeme))
+    {
+        values[name.lexeme] = value;
+        return;
+    }
+
+    if(enclosing) 
+    {
+        enclosing -> assign(name, value);
+        return;
+    }
+
+    throw RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
 }

@@ -26,22 +26,28 @@
 // Forward declarations for all supported expression types
 // ─────────────────────────────────────────────────────────────
 struct Binary;
+struct Logical;
+struct Call;
 struct Unary;
 struct Literal;
 struct Grouping;
 struct Conditional;
 struct Variable;
+struct Assignment;
 
 // ─────────────────────────────────────────────────────────────
 // ExpressionNode variant: acts like a base class for AST nodes
 // ─────────────────────────────────────────────────────────────
 using ExpressionNode = std::variant<
     Binary,
+    Call,
+    Logical,
     Unary,
     Literal,
     Grouping,
     Conditional,
-    Variable
+    Variable,
+    Assignment
 >;
 
 // Smart pointer for expression nodes
@@ -60,6 +66,16 @@ struct Binary
         : left(std::move(left)), op(std::move(op)), right(std::move(right)) {}
 };
 
+struct Logical
+{
+    ExprPtr left;
+    Token op;
+    ExprPtr right;
+
+    Logical(ExprPtr left, Token op, ExprPtr right)
+            : left(std::move(left)), op(std::move(op)), right(std::move(right)) {}
+};
+
 // ─────────────────────────────────────────────────────────────
 // Conditional: (condition ? left : right)
 // ─────────────────────────────────────────────────────────────
@@ -71,6 +87,16 @@ struct Conditional
 
     Conditional(ExprPtr condition, ExprPtr left, ExprPtr right)
         : condition(std::move(condition)), left(std::move(left)), right(std::move(right)) {}
+};
+
+struct Call
+{
+    ExprPtr callee;
+    Token paren;
+    std::vector<ExprPtr> arguments;
+
+    Call(ExprPtr callee, Token paren, std::vector<ExprPtr> arguments) :
+        callee(std::move(callee)), paren(paren), arguments(arguments) {}
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -116,4 +142,13 @@ struct Variable
 
     Variable(Token name)
         : name(name) {}
+};
+
+struct Assignment
+{
+    Token name;
+    ExprPtr value;
+
+    Assignment(Token name, ExprPtr value)
+        : name(name), value(std::move(value)) {}
 };

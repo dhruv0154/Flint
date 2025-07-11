@@ -24,9 +24,10 @@ std::unordered_map<std::string, TokenType> Scanner::keywords =
     {"false", TokenType::FALSE},
     {"for", TokenType::FOR},
     {"while", TokenType::WHILE},
+    {"break", TokenType::BREAK},
+    {"continue", TokenType::CONTINUE},
     {"func", TokenType::FUNC},
     {"nothing", TokenType::NOTHING},
-    {"print", TokenType::PRINT},
     {"return", TokenType::RETURN},
     {"class", TokenType::CLASS},
     {"super", TokenType::SUPER},
@@ -81,6 +82,22 @@ void Scanner::scanToken()
         case '%': addToken(TokenType::MODULO); break;
         case ':': addToken(TokenType::COLON); break;
         case '?': addToken(TokenType::QUESTION_MARK); break;
+        case '&':
+            if (match('&')) {
+                Flint::error(current - 2, "Use 'and' instead of '&&'");
+                break;
+            }
+            Flint::error(current - 1, "Unexpected character '&'");
+            break;
+
+        case '|':
+            if (match('|')) {
+                Flint::error(current - 2, "Use 'or' instead of '||'");
+                break;
+            }
+        Flint::error(current - 1, "Unexpected character '|'");
+        break;
+
 
         // Operators with possible two-character forms
         case '!': addToken(match('=') ? TokenType::BANG_EQUAL : TokenType::BANG); break;

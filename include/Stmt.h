@@ -25,8 +25,13 @@
 // Forward declarations of statement structs
 // ─────────────────────────────────────────────────────────────
 struct ExpressionStmt;
-struct PrintStmt;
+struct IfStmt;
+struct WhileStmt;
+struct BreakStmt;
+struct ContinueStmt;
+struct TryCatchContinueStmt;
 struct LetStmt;
+struct BlockStmt;
 
 // ─────────────────────────────────────────────────────────────
 // Statement Variant
@@ -34,7 +39,16 @@ struct LetStmt;
 // Acts as the base type for all statements in the AST.
 // Used in: Parser output and Interpreter execution
 // ─────────────────────────────────────────────────────────────
-using Statement = std::variant<ExpressionStmt, PrintStmt, LetStmt>;
+using Statement = std::variant<
+    ExpressionStmt, 
+    WhileStmt,
+    BreakStmt,
+    ContinueStmt,
+    TryCatchContinueStmt,
+    IfStmt, 
+    LetStmt, 
+    BlockStmt
+>;
 
 // ─────────────────────────────────────────────────────────────
 // Expression Statement
@@ -50,18 +64,46 @@ struct ExpressionStmt
         : expression(std::move(expr)) {}
 };
 
-// ─────────────────────────────────────────────────────────────
-// Print Statement
-// ─────────────────────────────────────────────────────────────
-// Example: `print x + 1;`
-// Used to output a value (handled by Interpreter).
-// ─────────────────────────────────────────────────────────────
-struct PrintStmt 
-{
-    ExprPtr expression;  // Expression whose result is printed
 
-    PrintStmt(ExprPtr expr)
-        : expression(std::move(expr)) {}
+struct IfStmt
+{
+    ExprPtr condition;
+    std::shared_ptr<Statement> thenBranch;
+    std::shared_ptr<Statement> elseBranch;
+
+    IfStmt(ExprPtr condition, 
+        std::shared_ptr<Statement> thenBranch, std::shared_ptr<Statement> elseBranch) :
+        condition(condition), thenBranch(std::move(thenBranch)), elseBranch(std::move(elseBranch)) {}
+};
+
+struct WhileStmt
+{
+    ExprPtr condition;
+    std::shared_ptr<Statement> statement;
+
+    WhileStmt(ExprPtr condition, std::shared_ptr<Statement> statement) :
+        condition(std::move(condition)), statement(std::move(statement)) {}
+};
+
+struct BreakStmt
+{
+    Token keyword;
+
+    BreakStmt(Token keyword) : keyword(keyword) {}
+};
+
+struct ContinueStmt
+{
+    Token keyword;
+
+    ContinueStmt(Token keyword) : keyword(keyword) {}
+};
+
+struct TryCatchContinueStmt
+{
+    std::shared_ptr<Statement> body;
+
+    TryCatchContinueStmt(std::shared_ptr<Statement> body) : body(body) {}
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -77,4 +119,12 @@ struct LetStmt
 
     LetStmt(Token name, ExprPtr expr) 
         : name(name), expression(std::move(expr)) {}
+};
+
+struct BlockStmt
+{
+    std::vector<std::shared_ptr<Statement>> statements;
+
+    BlockStmt(std::vector<std::shared_ptr<Statement>> statements) :
+        statements(statements) {}
 };

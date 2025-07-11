@@ -1,0 +1,101 @@
+// ─────────────────────────────────────────────
+// Declarations & Expressions
+// ─────────────────────────────────────────────
+let a = 10;
+let b = 5;
+let c;
+c = (a + b), a = 42;
+print("a = " + a + ", b = " + b + ", c = " + c + "\n");
+
+// ─────────────────────────────────────────────
+// Input and Output
+// ─────────────────────────────────────────────
+let name = scan("Enter your name: ");
+print("Hello, " + name + "\n");
+
+// ─────────────────────────────────────────────
+// If-Else Branching
+// ─────────────────────────────────────────────
+if (a > b) {
+    print("a is greater than b\n");
+} else {
+    print("b is greater or equal to a\n");
+}
+
+if (false) {
+    print("This shouldn't print\n");
+} else {
+    print("Else block works!\n");
+}
+
+// ─────────────────────────────────────────────
+// While Loop + break + continue
+// ─────────────────────────────────────────────
+let i = 0;
+while (i < 10) {
+    i = i + 1;
+    if (i == 3) continue;
+    if (i == 7) break;
+    print("While i = " + i + "\n");
+}
+
+// ─────────────────────────────────────────────
+// For Loop with init, cond, increment
+// ─────────────────────────────────────────────
+for (let j = 0; j < 5; j = j + 1) {
+    print("For j = " + j + "\n");
+}
+
+// ─────────────────────────────────────────────
+// Nested blocks + variable shadowing
+// ─────────────────────────────────────────────
+let x = 100;
+{
+    let x = 50;
+    print("x inside block: " + x + "\n");
+}
+print("x outside block: " + x + "\n");
+
+// ─────────────────────────────────────────────
+// Nested loops with break/continue
+// ─────────────────────────────────────────────
+for (let outer = 0; outer < 2; outer = outer + 1) {
+    for (let inner = 0; inner < 3; inner = inner + 1) {
+        if (outer == 1 and inner == 1) {
+            print("continue inner\n");
+            continue;
+        }
+        if (outer == 1 and inner == 2) {
+            print("break inner\n");
+            break;
+        }
+        print("outer = " + outer + ", inner = " + inner + "\n");
+    }
+}
+
+// ─────────────────────────────────────────────
+// Logical and/or expressions
+// ─────────────────────────────────────────────
+if (true and true) {
+    print("Logical 'and' works\n");
+}
+if (false or true) {
+    print("Logical 'or' works\n");
+}
+
+// ─────────────────────────────────────────────
+// Conditional / Ternary Operator
+// ─────────────────────────────────────────────
+let age = 18;
+let status = (age >= 18) ? "adult" : "minor";
+print("Status: " + status + "\n");
+
+// ─────────────────────────────────────────────
+// Error Tests — Comment out individually to test
+// ─────────────────────────────────────────────
+// let a = ;                    // Missing expression
+// 123 = 5;                     // Invalid assignment target
+// if (true                    // Missing closing paren
+// let z = "unterminated       // Unterminated string
+// print(x);                   // Undefined variable 'x'
+// let p = 3                   // Missing semicolon

@@ -21,30 +21,45 @@
 
 class Interpreter
 {
+private:
+    mutable bool isInsideLoop = false;
 public:
     // ─────────────────────────────────────────────────────────────
     // Global singletons shared across execution
     // ─────────────────────────────────────────────────────────────
 
     // Evaluator: used to evaluate expression nodes recursively
-    static std::unique_ptr<Evaluator> evaluator;
+    mutable std::unique_ptr<Evaluator> evaluator;
 
     // Environment: stores variable bindings (let x = ...)
-    static std::unique_ptr<Environment> environment;
+    mutable std::shared_ptr<Environment> environment;
+
+    std::shared_ptr<Environment> globals;
 
     // ─────────────────────────────────────────────────────────────
     // Statement Visitors
     // These operator() overloads are invoked by std::visit() on statements.
     // ─────────────────────────────────────────────────────────────
 
-    // Handles `print` statements: evaluates and outputs value
-    void operator()(const PrintStmt& stmt) const;
+    void operator()(const WhileStmt& stmt) const;
+
+    void operator()(const IfStmt& stmt) const;
+
+    void operator()(const BreakStmt& stmt) const;
+
+    void operator()(const ContinueStmt& stmt) const;
+
+    void operator()(const TryCatchContinueStmt& stmt) const;
 
     // Handles standalone expressions (e.g., `a + b;`)
     void operator()(const ExpressionStmt& exprStatement) const;
 
     // Handles variable declarations (`let x = 42;`)
     void operator()(const LetStmt& letStatement) const;
+
+    // Handles block statments ({ 'Collection of statements' })
+    void operator()(const BlockStmt& blockStatement) const;
+
 
     // ─────────────────────────────────────────────────────────────
     // Runtime Helpers
@@ -63,4 +78,10 @@ public:
 
     // Executes a single statement (used internally for each stmt in `interpret`)
     void execute(std::shared_ptr<Statement> statement) const;
+
+    // Executes a block statements (used internally for each stmt in `blockVisitor`)
+    void executeBlock(std::vector<std::shared_ptr<Statement>> statements, 
+            std::shared_ptr<Environment> newEnv) const;
+
+    Interpreter();
 };

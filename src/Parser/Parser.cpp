@@ -46,70 +46,246 @@ std::shared_ptr<Statement> Parser::parseVarDeclaration()
     ExprPtr initializer = nullptr;
     if (match({ TokenType::EQUAL })) initializer = expression();
 
-    consume(TokenType::SEMICOLON, "Expected ';' at the end of statement.");
+    consume(TokenType::SEMICOLON, "Expected ';'.");
     return makeStmt<LetStmt>(name, initializer);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses any valid statement: print or expression statement for now
+// Parses any valid statement
 // ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::parseStatement()
 {
-    if (match({ TokenType::PRINT })) return printStatement();
+    if (match({ TokenType::IF }))
+        return ifStatement();
+    else if (match({ TokenType::FOR }))
+        return forStatement();
+    else if (match({ TokenType::WHILE }))
+        return whileStatement();
+    else if (match({ TokenType::BREAK }))
+        return breakStatement();
+    else if (match({ TokenType::CONTINUE }))
+        return continueStatement();
+    else if (match({ TokenType::LEFT_BRACE })) 
+        return makeStmt<BlockStmt>(blockStatement());
     return expressionStatement();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parses a `if` statement
+// ─────────────────────────────────────────────────────────────────────────────
+std::shared_ptr<Statement> Parser::ifStatement()
+{
+    consume(TokenType::LEFT_PAREN, "Expected a '(' at the start of 'if' condition.");
+    ExprPtr condition = expression();
+    consume(TokenType::RIGHT_PAREN, "Expected a ')' at the end of 'if' condition.");
+
+    std::shared_ptr<Statement> thenBranch = parseStatement();
+    std::shared_ptr<Statement> elseBranch = nullptr;
+    if(match({ TokenType::ELSE })) elseBranch = parseStatement();
+
+    return makeStmt<IfStmt>(condition, thenBranch, elseBranch);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parses a `while` statement
+// ─────────────────────────────────────────────────────────────────────────────
+std::shared_ptr<Statement> Parser::whileStatement()
+{
+    consume(TokenType::LEFT_PAREN, 
+        "Expected '(' at the start of while condition.");
+
+    ExprPtr condition = expression();
+    
+    consume(TokenType::RIGHT_PAREN, 
+        "Expected ')' at the end of while condition.");
+    
+    std::shared_ptr<Statement> body = parseStatement();
+
+    return makeStmt<WhileStmt>(condition, body);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parses a `break` statement
+// ─────────────────────────────────────────────────────────────────────────────
+std::shared_ptr<Statement> Parser::breakStatement()
+{
+    Token keyword = previous();
+    consume(TokenType::SEMICOLON, "Expected ';' at the end of break statement");
+    return makeStmt<BreakStmt>(keyword);
+}
+
+std::shared_ptr<Statement> Parser::continueStatement()
+{
+    Token keyword = previous();
+    consume(TokenType::SEMICOLON, "Expected ';' at the end of continue statement");
+    return makeStmt<ContinueStmt>(keyword);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parses a `for` statement
+// ─────────────────────────────────────────────────────────────────────────────
+std::shared_ptr<Statement> Parser::forStatement()
+{
+    consume(TokenType::LEFT_PAREN, 
+        "Expected '(' at the start of for clauses.");
+
+    std::shared_ptr<Statement> initializer;
+    if(match({ TokenType::SEMICOLON })) initializer = nullptr;
+    else if(match({ TokenType::LET })) initializer = parseVarDeclaration();
+    else initializer = expressionStatement();
+
+    ExprPtr condition = nullptr;
+    if(!check(TokenType::SEMICOLON)) condition = expression();
+    consume(TokenType::SEMICOLON, "Expected ';' after for loop condition");
+
+    ExprPtr increment = nullptr;
+    if(!check(TokenType::RIGHT_PAREN)) increment = expression();
+    consume(TokenType::RIGHT_PAREN, "Expected ')' at the end of for clauses");
+
+    std::shared_ptr<Statement> body = parseStatement();
+
+    if(increment)
+    {
+        body = makeStmt<BlockStmt>(std::vector<std::shared_ptr<Statement>>
+            { makeStmt<TryCatchContinueStmt>(body), makeStmt<ExpressionStmt>(increment) });
+    }
+    else
+    {
+        body = makeStmt<TryCatchContinueStmt>(body);
+    }
+
+    if(!condition) condition = makeExpr<Literal>(true);
+    body = makeStmt<WhileStmt>(condition, body);
+
+    if(initializer)
+    {
+        body = makeStmt<BlockStmt>(std::vector<std::shared_ptr<Statement>>
+            { initializer, body });
+    }
+    return body;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parses a block of statements (starts with '{' ends with '}')
+// ─────────────────────────────────────────────────────────────────────────────
+std::vector<std::shared_ptr<Statement>> Parser::blockStatement()
+{
+    std::vector<std::shared_ptr<Statement>> statements;
+
+    while (!check(TokenType::RIGHT_BRACE) && !isAtEnd()) 
+        statements.emplace_back(declareStatement());
+
+    consume(TokenType::RIGHT_BRACE, "Expect '}' at the end of block.");
+    return statements;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parses a generic expression statement (ends with `;`)
+// ─────────────────────────────────────────────────────────────────────────────
+std::shared_ptr<Statement> Parser::expressionStatement()
+{
+    ExprPtr expr = expression();
+    consume(TokenType::SEMICOLON, "';' expected.");
+    return makeStmt<ExpressionStmt>(expr);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Parses full expressions starting with ternary conditionals
 // ─────────────────────────────────────────────────────────────────────────────
-std::shared_ptr<ExpressionNode> Parser::expression()
+ExprPtr Parser::expression()
 {
-    return conditional();
+    return comma();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Parses comma-separated expressions: a, b, c (evaluates all, returns rightmost)
+// ─────────────────────────────────────────────────────────────────────────────
+ExprPtr Parser::comma()
+{
+    if (match({ TokenType::COMMA })) {
+        Token op = previous();
+        error(op, "Missing left-hand operand before ','.");
+        return assignment();
+    }
+
+    auto expr = assignment();
+    while (match({ TokenType::COMMA })) {
+        Token op = previous();
+        auto right = assignment();
+        expr = makeExpr<Binary>(expr, op, right);
+    }
+    return expr;
+}
+
+ExprPtr Parser::assignment()
+{
+    ExprPtr expr = conditional();
+
+    if(match({ TokenType::EQUAL }))
+    {
+        Token equals = previous();
+        ExprPtr value = assignment();
+        if(std::holds_alternative<Variable>(*expr))
+        {
+            Token name = std::get<Variable>(*expr).name;
+            return makeExpr<Assignment>(name, value);
+        }
+        throw error(equals, "Invalid assignment target.");
+    }
+    return expr;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Parses ternary conditionals: a ? b : c
 // Right-associative structure is enforced
 // ─────────────────────────────────────────────────────────────────────────────
-std::shared_ptr<ExpressionNode> Parser::conditional()
+ExprPtr Parser::conditional()
 {
-    std::shared_ptr<ExpressionNode> expr = comma();
+    ExprPtr expr = logicalOr();
 
     if (match({ TokenType::QUESTION_MARK }))
     {
-        std::shared_ptr<ExpressionNode> thenBranch = conditional();
+        ExprPtr thenBranch = conditional();
         consume(TokenType::COLON, "Expected ':' after then branch of ternary operator.");
-        std::shared_ptr<ExpressionNode> elseBranch = conditional();
+        ExprPtr elseBranch = conditional();
         expr = makeExpr<Conditional>(expr, thenBranch, elseBranch);
     }
 
     return expr;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Parses comma-separated expressions: a, b, c (evaluates all, returns rightmost)
-// ─────────────────────────────────────────────────────────────────────────────
-std::shared_ptr<ExpressionNode> Parser::comma()
+ExprPtr Parser::logicalOr()
 {
-    if (match({ TokenType::COMMA })) {
-        Token op = previous();
-        error(op, "Missing left-hand operand before ','.");
-        return equality();
-    }
+    ExprPtr expr = logicalAnd();
 
-    auto expr = equality();
-    while (match({ TokenType::COMMA })) {
+    while (match({ TokenType::OR }))
+    {
         Token op = previous();
-        auto right = equality();
-        expr = makeExpr<Binary>(expr, op, right);
+        ExprPtr right = logicalAnd();
+        expr = makeExpr<Logical>(expr, op, right);
     }
+    
+    return expr;
+}
+
+ExprPtr Parser::logicalAnd()
+{
+    ExprPtr expr = equality();
+
+    while (match({ TokenType::AND }))
+    {
+        Token op = previous();
+        ExprPtr right = equality();
+        expr = makeExpr<Logical>(expr, op, right);
+    }
+    
     return expr;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Parses equality expressions: == and !=
 // ─────────────────────────────────────────────────────────────────────────────
-std::shared_ptr<ExpressionNode> Parser::equality()
+ExprPtr Parser::equality()
 {
     if (match({ TokenType::EQUAL_EQUAL, TokenType::BANG_EQUAL })) {
         Token op = previous();
@@ -129,7 +305,7 @@ std::shared_ptr<ExpressionNode> Parser::equality()
 // ─────────────────────────────────────────────────────────────────────────────
 // Parses comparisons: <, <=, >, >=
 // ─────────────────────────────────────────────────────────────────────────────
-std::shared_ptr<ExpressionNode> Parser::comparison()
+ExprPtr Parser::comparison()
 {
     if (match({ TokenType::LESS, TokenType::LESS_EQUAL, TokenType::GREATER, TokenType::GREATER_EQUAL })) {
         Token op = previous();
@@ -149,7 +325,7 @@ std::shared_ptr<ExpressionNode> Parser::comparison()
 // ─────────────────────────────────────────────────────────────────────────────
 // Parses addition and subtraction: + and -
 // ─────────────────────────────────────────────────────────────────────────────
-std::shared_ptr<ExpressionNode> Parser::term()
+ExprPtr Parser::term()
 {
     auto expr = factor();
     while (match({ TokenType::PLUS, TokenType::MINUS })) {
@@ -163,7 +339,7 @@ std::shared_ptr<ExpressionNode> Parser::term()
 // ─────────────────────────────────────────────────────────────────────────────
 // Parses multiplication, division, and modulo: *, /, %
 // ─────────────────────────────────────────────────────────────────────────────
-std::shared_ptr<ExpressionNode> Parser::factor()
+ExprPtr Parser::factor()
 {
     if (match({ TokenType::STAR, TokenType::SLASH, TokenType::MODULO })) {
         Token op = previous();
@@ -183,22 +359,53 @@ std::shared_ptr<ExpressionNode> Parser::factor()
 // ─────────────────────────────────────────────────────────────────────────────
 // Parses unary expressions: - and !
 // ─────────────────────────────────────────────────────────────────────────────
-std::shared_ptr<ExpressionNode> Parser::unary()
+ExprPtr Parser::unary()
 {
     if (match({ TokenType::BANG, TokenType::MINUS })) {
         Token op = previous();
-        std::shared_ptr<ExpressionNode> right = unary();
+        ExprPtr right = unary();
         return makeExpr<Unary>(op, right);
     }
 
-    return primary();
+    return call();
+}
+
+ExprPtr Parser::call()
+{
+    ExprPtr expr = primary();
+
+    while (true)
+    {
+        if(match({ TokenType::LEFT_PAREN })) expr = finishCall(expr);
+        else break;
+    }
+    return expr;
+}
+
+ExprPtr Parser::finishCall(ExprPtr callee)
+{
+    std::vector<ExprPtr> arguments;
+
+    if(!check(TokenType::RIGHT_PAREN))
+    {
+        do
+        {
+            if(arguments.size() >= 255) error(peek(), "More than 255 arguments are not allowed.");
+            arguments.emplace_back(expression());
+        } while (match({ TokenType::COMMA }));
+    }
+
+    Token paren =  consume(TokenType::RIGHT_PAREN, 
+        "Expect ')' at the end of function arguments");
+    
+    return makeExpr<Call>(callee, paren, arguments);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Parses primary literals: true, false, nothing, numbers, strings, identifiers
 // Also handles parenthesized expressions
 // ─────────────────────────────────────────────────────────────────────────────
-std::shared_ptr<ExpressionNode> Parser::primary()
+ExprPtr Parser::primary()
 {
     if (match({ TokenType::FALSE }))   return makeExpr<Literal>(false);
     if (match({ TokenType::TRUE }))    return makeExpr<Literal>(true);
@@ -206,35 +413,19 @@ std::shared_ptr<ExpressionNode> Parser::primary()
     if (match({ TokenType::NUMBER, TokenType::STRING }))
         return makeExpr<Literal>(previous().literal);
     if (match({ TokenType::IDENTIFIER }))
-        return makeExpr<Variable>(previous());
+    {
+        Token name = previous();
+
+        return makeExpr<Variable>(name);
+    }
 
     if (match({ TokenType::LEFT_PAREN })) {
-        std::shared_ptr<ExpressionNode> expr = expression();
+        ExprPtr expr = expression();
         consume(TokenType::RIGHT_PAREN, "Expected a ')'.");
         return makeExpr<Grouping>(expr);
     }
 
     throw error(peek(), "Expected an expression.");
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Parses a `print` statement
-// ─────────────────────────────────────────────────────────────────────────────
-std::shared_ptr<Statement> Parser::printStatement()
-{
-    ExprPtr val = expression();
-    consume(TokenType::SEMICOLON, "';' expected.");
-    return makeStmt<PrintStmt>(val);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Parses a generic expression statement (ends with `;`)
-// ─────────────────────────────────────────────────────────────────────────────
-std::shared_ptr<Statement> Parser::expressionStatement()
-{
-    ExprPtr expr = expression();
-    consume(TokenType::SEMICOLON, "';' expected.");
-    return makeStmt<ExpressionStmt>(expr);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -286,7 +477,6 @@ void Parser::synchronize()
             case TokenType::FOR:
             case TokenType::IF:
             case TokenType::WHILE:
-            case TokenType::PRINT:
             case TokenType::RETURN:
                 return;
         }
@@ -299,15 +489,15 @@ void Parser::synchronize()
 // AST Construction Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 template<typename T, typename... Args>
-std::shared_ptr<ExpressionNode> Parser::makeExpr(Args&&... args) 
+ExprPtr Parser::makeExpr(Args&&... args) 
 {
-    return std::make_shared<ExpressionNode>(T{std::forward<Args>(args)...});
+    return std::make_shared<ExpressionNode>(T(std::forward<Args>(args)...));
 }
 
 template<typename T, typename... Args>
 std::shared_ptr<Statement> Parser::makeStmt(Args&&... args) 
 {
-    return std::make_shared<Statement>(T{std::forward<Args>(args)...});
+    return std::make_shared<Statement>(T(std::forward<Args>(args)...));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

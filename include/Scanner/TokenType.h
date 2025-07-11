@@ -65,13 +65,14 @@ enum class TokenType
     IF,             // if condition
     NOTHING,        // Flint’s equivalent of nil/null
     OR,             // logical or
-    PRINT,          // print statement
     RETURN,         // return from function
     SUPER,          // super class call
     THIS,           // current object reference
     TRUE,           // boolean true
     LET,            // variable declaration
     WHILE,          // while loop
+    BREAK,          // break statement
+    CONTINUE,       // continue statement
 
     // ─────────────────────────────────────────────
     // 5. Sentinel Token

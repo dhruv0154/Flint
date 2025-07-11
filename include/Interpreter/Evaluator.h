@@ -19,10 +19,16 @@
 #include <memory>
 #include <cmath>
 #include "ExpressionNode.h"
+#include "Flint/Environment.h"
+
+class Interpreter;
 
 class Evaluator 
 {
+
 public:
+    std::shared_ptr<Environment> environment;
+    Interpreter& interpreter;
     // ─────────────────────────────────────────────────────────────
     // Expression Visitors
     // Each handles a specific node type from the AST.
@@ -31,6 +37,9 @@ public:
 
     // Evaluates binary expressions (e.g., a + b, a > b, a == b)
     LiteralValue operator()(const Binary& expr) const;
+
+    // Evaluates logical 'or' and 'and' expressions (e.g. a == 0 && b == 1)
+    LiteralValue operator()(const Logical& expr) const;
 
     // Evaluates conditional (ternary) expressions (e.g., cond ? a : b)
     LiteralValue operator()(const Conditional& expr) const;
@@ -46,6 +55,12 @@ public:
 
     // Evaluates a variable reference, typically looked up from environment
     LiteralValue operator()(const Variable& expr) const;
+
+
+    // Evaluates a assignment expression like a = 1 + 5, a = b etc.
+    LiteralValue operator()(const Assignment& expr) const;
+
+    LiteralValue operator()(const Call& expr) const;
 
     // ─────────────────────────────────────────────────────────────
     // Evaluation Helpers
@@ -73,4 +88,8 @@ public:
     // Used in binary/unary op validation.
     template<typename... Operands>
     void checkOperandType(const Token& op, const Operands&... operands) const;
+
+    Evaluator(std::shared_ptr<Environment> env, Interpreter& interpreter)
+        : environment(std::move(env)), interpreter(interpreter) {}
+
 };

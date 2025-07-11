@@ -16,6 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include <unordered_map>
+#include <optional>
 #include "Scanner/Value.h"
 #include "Scanner/Token.h"
 
@@ -26,15 +27,21 @@ private:
     // values:
     // The core storage for the environment.
     // Maps variable names (as strings) to their associated LiteralValue.
-    // This mimics variable scoping like in dynamic languages.
     // ─────────────────────────────────────────────────────────────────────
     std::unordered_map<std::string, LiteralValue> values;
+
+    // ─────────────────────────────────────────────────────────────────────
+    // enclosing:
+    // Pointer to the environment enclosing this one
+    // This is for supporting variable scoping.
+    // ─────────────────────────────────────────────────────────────────────
+    std::shared_ptr<Environment> enclosing;
 
 public:
     // ─────────────────────────────────────────────────────────────────────
     // define(name, value):
-    // Adds a new variable or reassigns an existing one in the environment.
-    // Used when evaluating `let` statements or assignments.
+    // Adds a new variable.
+    // Used when evaluating `let` statements.
     //
     // Example:
     //     env.define("x", 42.0);  // let x = 42;
@@ -53,4 +60,21 @@ public:
     //     LiteralValue val = env.get(name);
     // ─────────────────────────────────────────────────────────────────────
     LiteralValue get(Token name);
+
+    std::optional<LiteralValue> getOptional(const std::string &name) const;
+
+    // ─────────────────────────────────────────────────────────────────────
+    // assign(name, value):
+    // reassigns an existing variable in the environment.
+    // Used when evaluating assignments.
+    //
+    // Example:
+    //     env.assign("x", 42.0);  // x = 42;
+    // ─────────────────────────────────────────────────────────────────────
+    void assign(Token name, LiteralValue value);
+
+    // Default Constructor for no enclosing environment (global scope env).
+    Environment() : enclosing(nullptr) {}
+    // Overloaded Constructor for an enclosing environment.
+    Environment(std::shared_ptr<Environment> enclosing) : enclosing(enclosing) {}
 };
