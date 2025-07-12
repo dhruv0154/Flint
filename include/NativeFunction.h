@@ -19,7 +19,7 @@ public:
         return arity_;
     }
 
-    LiteralValue call(Interpreter&, 
+    LiteralValue call(Interpreter& interpreter, 
         const std::vector<LiteralValue>& args, const Token &paren) override {
         return fn_(args, paren);
     }

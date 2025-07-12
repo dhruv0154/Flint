@@ -24,6 +24,7 @@ std::shared_ptr<Statement> Parser::declareStatement()
 {
     try
     {
+        if (match({ TokenType::FUNC })) return parseFuncDeclaration("function");
         if (match({ TokenType::LET })) return parseVarDeclaration();
         return parseStatement();
     }
@@ -50,6 +51,32 @@ std::shared_ptr<Statement> Parser::parseVarDeclaration()
     return makeStmt<LetStmt>(name, initializer);
 }
 
+std::shared_ptr<Statement> Parser::parseFuncDeclaration(std::string kind)
+{
+    Token name = consume(TokenType::IDENTIFIER, "Expected " + kind + " name.");
+    consume(TokenType::LEFT_PAREN, "Expected '(' at the start of " + kind + " name.");
+    std::vector<Token> params;
+
+    if(!check(TokenType::RIGHT_PAREN))
+    {
+        do
+        {
+            if(params.size() >= 255) error(peek(), "More than 255 arguments are not allowed.");
+
+            params.emplace_back(consume(TokenType::IDENTIFIER, "Expected parameter name."));
+        } while (match({ TokenType::COMMA }));
+        
+    }
+
+    consume(TokenType::RIGHT_PAREN, "Expected ')' after function parameters.");
+
+    consume(TokenType::LEFT_BRACE, "Expected '{' at the start of " + kind + " body.");
+
+    std::vector<std::shared_ptr<Statement>> body = blockStatement();
+
+    return makeStmt<FunctionStmt>(name, params, body);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Parses any valid statement
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,6 +88,8 @@ std::shared_ptr<Statement> Parser::parseStatement()
         return forStatement();
     else if (match({ TokenType::WHILE }))
         return whileStatement();
+    else if (match({ TokenType::RETURN }))
+        return returnStatement();
     else if (match({ TokenType::BREAK }))
         return breakStatement();
     else if (match({ TokenType::CONTINUE }))
@@ -102,6 +131,15 @@ std::shared_ptr<Statement> Parser::whileStatement()
     std::shared_ptr<Statement> body = parseStatement();
 
     return makeStmt<WhileStmt>(condition, body);
+}
+
+std::shared_ptr<Statement> Parser::returnStatement()
+{
+    Token keyword = previous();
+    ExprPtr val = nullptr;
+    if(!check(TokenType::SEMICOLON)) val = expression();
+    consume(TokenType::SEMICOLON, "Expected ';' at the end of return value.");
+    return makeStmt<ReturnStmt>(keyword, val);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -374,10 +412,21 @@ ExprPtr Parser::call()
 {
     ExprPtr expr = primary();
 
-    while (true)
+    while (true) 
     {
-        if(match({ TokenType::LEFT_PAREN })) expr = finishCall(expr);
-        else break;
+        if (match({ TokenType::LEFT_PAREN })) 
+        {
+            expr = finishCall(expr);
+        } 
+        else if (check(TokenType::STRING) || check(TokenType::NUMBER) || check(TokenType::IDENTIFIER)) 
+        {
+            // This means we're trying to call without a left paren
+            throw error(peek(), "Expected '(' after function name to start a call.");
+        } 
+        else 
+        {
+            break;
+        }
     }
     return expr;
 }
@@ -391,7 +440,7 @@ ExprPtr Parser::finishCall(ExprPtr callee)
         do
         {
             if(arguments.size() >= 255) error(peek(), "More than 255 arguments are not allowed.");
-            arguments.emplace_back(expression());
+            arguments.emplace_back(assignment());
         } while (match({ TokenType::COMMA }));
     }
 

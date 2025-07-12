@@ -7,13 +7,14 @@
 #include "RuntimeError.h"
 #include "FlintCallable.h"
 #include "NativeFunction.h"
+#include "FlintFunction.h"
+#include "ReturnException.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Global Interpreter State
 // The Evaluator handles expression evaluation (Binary, Literal, etc.).
 // The Environment stores runtime variables.
 // ─────────────────────────────────────────────────────────────────────────────
-
 Interpreter::Interpreter()
 {
     globals = std::make_shared<Environment>();
@@ -34,7 +35,7 @@ Interpreter::Interpreter()
 
     globals -> define("scan", std::make_shared<NativeFunction>(
         -1,
-        [](const std::vector<LiteralValue>& args, 
+        [this](const std::vector<LiteralValue>& args, 
             const Token &paren) -> LiteralValue 
         {
             
@@ -51,7 +52,8 @@ Interpreter::Interpreter()
             std::getline(std::cin, line);
             line.erase(line.find_last_not_of(" \t\n\r\f\v") + 1); // trim right
             line.erase(0, line.find_first_not_of(" \t\n\r\f\v")); // trim left
-            return line;
+            return this -> isNumber(line) ? 
+                LiteralValue(std::stod(line)) : LiteralValue(line);
         },
         "scan"
     ));
@@ -158,6 +160,14 @@ std::string Interpreter::stringify(const LiteralValue& obj)
     return std::visit(func, obj);
 }
 
+bool Interpreter::isNumber(const std::string& str) 
+{
+    char* end = nullptr;
+    std::strtod(str.c_str(), &end);
+    return end != str.c_str() && *end == '\0';
+}
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Statement Visitor Implementations
 // These overloads are invoked via std::visit inside `execute()`.
@@ -188,6 +198,20 @@ void Interpreter::operator()(const WhileStmt& stmt) const
         } 
     }
     isInsideLoop = previousInsideLoop;
+}
+
+void Interpreter::operator()(const FunctionStmt &stmt) const
+{
+    std::shared_ptr<FlintFunction> function = std::make_shared<FlintFunction>(stmt);
+    environment -> define(stmt.name.lexeme, function);
+}
+
+void Interpreter::operator()(const ReturnStmt &stmt) const
+{
+    LiteralValue val = nullptr;
+    if(stmt.val) val = evaluator -> evaluate(stmt.val);
+     
+    throw ReturnException(val);
 }
 
 void Interpreter::operator()(const BreakStmt& stmt) const

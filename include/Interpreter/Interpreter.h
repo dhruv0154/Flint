@@ -43,6 +43,10 @@ public:
 
     void operator()(const WhileStmt& stmt) const;
 
+    void operator()(const FunctionStmt& stmt) const;
+
+    void operator()(const ReturnStmt& stmt) const;
+
     void operator()(const IfStmt& stmt) const;
 
     void operator()(const BreakStmt& stmt) const;
@@ -65,6 +69,7 @@ public:
     // Runtime Helpers
     // ─────────────────────────────────────────────────────────────
 
+    bool isNumber(const std::string& str);
     // Converts any LiteralValue (double, bool, nil, string) to a string.
     // Used for printing and debug output.
     static std::string stringify(const LiteralValue& val);

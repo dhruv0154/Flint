@@ -86,9 +86,11 @@ private:
     // ─────────────────────────────────────────────────────────────
     std::shared_ptr<Statement> declareStatement();      // entry point for top-level stmt
     std::shared_ptr<Statement> parseVarDeclaration();   // `let` statement
+    std::shared_ptr<Statement> parseFuncDeclaration(std::string kind);   // `func` statement
     std::shared_ptr<Statement> parseStatement();        // generic statement
     std::shared_ptr<Statement> ifStatement();           // 'if' condition statement
     std::shared_ptr<Statement> whileStatement();        // 'while' loop statement
+    std::shared_ptr<Statement> returnStatement();        // 'return' statement
     std::shared_ptr<Statement> breakStatement();        // 'break' statement
     std::shared_ptr<Statement> continueStatement();      // 'continue' statement
     std::shared_ptr<Statement> forStatement();          // 'for' loop statement

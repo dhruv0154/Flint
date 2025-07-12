@@ -25,8 +25,10 @@
 // Forward declarations of statement structs
 // ─────────────────────────────────────────────────────────────
 struct ExpressionStmt;
+struct FunctionStmt;
 struct IfStmt;
 struct WhileStmt;
+struct ReturnStmt;
 struct BreakStmt;
 struct ContinueStmt;
 struct TryCatchContinueStmt;
@@ -40,8 +42,10 @@ struct BlockStmt;
 // Used in: Parser output and Interpreter execution
 // ─────────────────────────────────────────────────────────────
 using Statement = std::variant<
-    ExpressionStmt, 
+    ExpressionStmt,
+    FunctionStmt, 
     WhileStmt,
+    ReturnStmt,
     BreakStmt,
     ContinueStmt,
     TryCatchContinueStmt,
@@ -76,6 +80,16 @@ struct IfStmt
         condition(condition), thenBranch(std::move(thenBranch)), elseBranch(std::move(elseBranch)) {}
 };
 
+struct FunctionStmt
+{
+    Token name;
+    std::vector<Token> params;
+    std::vector<std::shared_ptr<Statement>> body;
+
+    FunctionStmt(Token name, std::vector<Token> params, std::vector<std::shared_ptr<Statement>> body) :
+        name(name), params(params), body(body) {}
+};
+
 struct WhileStmt
 {
     ExprPtr condition;
@@ -83,6 +97,14 @@ struct WhileStmt
 
     WhileStmt(ExprPtr condition, std::shared_ptr<Statement> statement) :
         condition(std::move(condition)), statement(std::move(statement)) {}
+};
+
+struct ReturnStmt
+{
+    Token keyword;
+    ExprPtr val;
+
+    ReturnStmt(Token keyword, ExprPtr val) : keyword(keyword), val(val) {}
 };
 
 struct BreakStmt
