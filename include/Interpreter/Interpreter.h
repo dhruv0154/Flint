@@ -25,13 +25,18 @@ private:
     mutable bool isInsideLoop = false;
     std::shared_ptr<Environment> globals;
     std::unordered_map<ExprPtr, int> locals;
+        // Evaluator: used to evaluate expression nodes recursively
     mutable std::unique_ptr<Evaluator> evaluator;
+
+    // Environment: stores variable bindings (let x = ...)
     mutable std::shared_ptr<Environment> environment;
 
 public:
     // ─────────────────────────────────────────────────────────────
     // Global singletons shared across execution
     // ─────────────────────────────────────────────────────────────
+
+
 
 
     // ─────────────────────────────────────────────────────────────

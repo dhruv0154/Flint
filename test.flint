@@ -1,9 +1,3 @@
-let a = "global";
-{
- func showA() {
- print (a);
- }
- showA();
- let a = "block";
- showA();
-}
+func s(a){ print(a); }
+
+s(5);
