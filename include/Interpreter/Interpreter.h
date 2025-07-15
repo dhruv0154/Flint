@@ -23,18 +23,16 @@ class Interpreter
 {
 private:
     mutable bool isInsideLoop = false;
+    std::shared_ptr<Environment> globals;
+    std::unordered_map<ExprPtr, int> locals;
+    mutable std::unique_ptr<Evaluator> evaluator;
+    mutable std::shared_ptr<Environment> environment;
+
 public:
     // ─────────────────────────────────────────────────────────────
     // Global singletons shared across execution
     // ─────────────────────────────────────────────────────────────
 
-    // Evaluator: used to evaluate expression nodes recursively
-    mutable std::unique_ptr<Evaluator> evaluator;
-
-    // Environment: stores variable bindings (let x = ...)
-    mutable std::shared_ptr<Environment> environment;
-
-    std::shared_ptr<Environment> globals;
 
     // ─────────────────────────────────────────────────────────────
     // Statement Visitors
@@ -87,6 +85,9 @@ public:
     // Executes a block statements (used internally for each stmt in `blockVisitor`)
     void executeBlock(std::vector<std::shared_ptr<Statement>> statements, 
             std::shared_ptr<Environment> newEnv) const;
+    
+    void resolve(ExprPtr expr, int depth);
 
+    friend class Evaluator;
     Interpreter();
 };

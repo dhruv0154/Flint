@@ -20,7 +20,7 @@
 #include "Scanner/Value.h"
 #include "Scanner/Token.h"
 
-class Environment
+class Environment : public std::enable_shared_from_this<Environment>
 {
 private:
     // ─────────────────────────────────────────────────────────────────────
@@ -60,8 +60,11 @@ public:
     //     LiteralValue val = env.get(name);
     // ─────────────────────────────────────────────────────────────────────
     LiteralValue get(Token name);
+    LiteralValue getAt(int distance, Token name);
 
     std::optional<LiteralValue> getOptional(const std::string &name) const;
+
+    std::shared_ptr<Environment> ancestors(int distance);
 
     // ─────────────────────────────────────────────────────────────────────
     // assign(name, value):
@@ -72,9 +75,10 @@ public:
     //     env.assign("x", 42.0);  // x = 42;
     // ─────────────────────────────────────────────────────────────────────
     void assign(Token name, LiteralValue value);
+    void assignAt(int distance, Token name, LiteralValue value);
 
     // Default Constructor for no enclosing environment (global scope env).
     Environment() : enclosing(nullptr) {}
     // Overloaded Constructor for an enclosing environment.
-    Environment(std::shared_ptr<Environment> enclosing) : enclosing(enclosing) {}
+    Environment(std::shared_ptr<Environment> enclosing) : enclosing(std::move(enclosing)) {}
 };

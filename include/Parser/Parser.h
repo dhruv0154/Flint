@@ -58,6 +58,7 @@ private:
     ExprPtr unary();           // !, -
     ExprPtr call();           // function call ()
     ExprPtr primary();         // literals, parens, identifiers
+    ExprPtr lambda();         // anonymous/lambda expressions
 
     // ─────────────────────────────────────────────────────────────
     // Token Utility Helpers

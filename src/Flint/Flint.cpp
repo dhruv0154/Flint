@@ -20,6 +20,7 @@
 #include "Parser/Parser.h"       // AST parser
 #include "Interpreter/Evaluator.h"
 #include "Interpreter/Interpreter.h"
+#include "Resolver.h"
 // #include "AstPrinter.h"
 // #include "RpnPrinter.h"
 
@@ -32,7 +33,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 bool Flint::hadError = false;
 bool Flint::hadRuntimeError = false;
-const std::unique_ptr<Interpreter> Flint::interpreter = std::make_unique<Interpreter>();
+const std::shared_ptr<Interpreter> Flint::interpreter = std::make_shared<Interpreter>();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry Point: main()
@@ -128,7 +129,12 @@ void Flint::run(const std::string& source)
     }
 
     if (!validStatements.empty())
+    {
+        auto resolver = std::make_unique<Resolver>(interpreter);
+        resolver -> resolve(validStatements);
+        if(hadError) return;
         interpreter->interpret(validStatements);
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

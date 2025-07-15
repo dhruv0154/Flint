@@ -25,7 +25,16 @@ std::shared_ptr<Statement> Parser::declareStatement()
     try
     {
         if (match({ TokenType::FUNC })) return parseFuncDeclaration("function");
-        if (match({ TokenType::LET })) return parseVarDeclaration();
+        if (match({ TokenType::LET })) 
+        {
+            if(check(TokenType::IDENTIFIER))
+                return parseVarDeclaration();
+            else
+            {
+                current--;
+                return parseStatement();
+            }
+        }
         return parseStatement();
     }
     catch (ParseError error)
@@ -461,6 +470,7 @@ ExprPtr Parser::primary()
     if (match({ TokenType::NOTHING })) return makeExpr<Literal>(std::monostate{});
     if (match({ TokenType::NUMBER, TokenType::STRING }))
         return makeExpr<Literal>(previous().literal);
+    if (match({ TokenType::FUNC })) return lambda();
     if (match({ TokenType::IDENTIFIER }))
     {
         Token name = previous();
@@ -475,6 +485,32 @@ ExprPtr Parser::primary()
     }
 
     throw error(peek(), "Expected an expression.");
+}
+
+ExprPtr Parser::lambda()
+{
+    consume(TokenType::LEFT_PAREN, "Expected '(' at the start of lambda function.");
+    std::vector<Token> params;
+
+    if(!check(TokenType::RIGHT_PAREN))
+    {
+        do
+        {
+            if(params.size() >= 255) error(peek(), "More than 255 agruments are not allowed.");
+            
+            params.push_back(consume(TokenType::IDENTIFIER, "Expected parameter name."));
+        } while (match({ TokenType::COMMA }));
+    }
+
+    consume(TokenType::RIGHT_PAREN, "Expected ')' after function parameters.");
+                                                                                             
+    consume(TokenType::LEFT_BRACE, "Expected '{' at the start of lambda body.");
+
+    std::vector<std::shared_ptr<Statement>> body = blockStatement();
+
+    std::shared_ptr<FunctionStmt> stmt = std::make_shared<FunctionStmt>(std::nullopt, params, body);
+
+    return makeExpr<Lambda>(stmt);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -19,7 +19,7 @@ Interpreter::Interpreter()
 {
     globals = std::make_shared<Environment>();
     environment = globals;
-    evaluator = std::make_unique<Evaluator>(environment, *this);
+    evaluator = std::make_unique<Evaluator>(*this);
 
     // Define clock()
     globals -> define("clock", std::make_shared<NativeFunction>(
@@ -67,6 +67,25 @@ Interpreter::Interpreter()
     },
     "print"
     ));
+
+    globals->define("intDiv", std::make_shared<NativeFunction>(
+    2,
+    [](const std::vector<LiteralValue>& args, const Token& paren) -> LiteralValue {
+        if (!std::holds_alternative<double>(args[0]) 
+        || !std::holds_alternative<double>(args[1])) {
+            throw RuntimeError(paren, "intDiv() expects two numbers.");
+        }
+
+        int a = static_cast<int>(std::get<double>(args[0]));
+        int b = static_cast<int>(std::get<double>(args[1]));
+
+        if (b == 0) throw RuntimeError(paren, "Division by zero.");
+
+        return static_cast<double>(a / b); 
+    },
+    "intDiv"
+    ));
+
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,8 +122,6 @@ void Interpreter::executeBlock(std::vector<std::shared_ptr<Statement>> statement
     auto previous = environment;
     environment = newEnv;
 
-    evaluator -> environment = newEnv;
-
     try
     {
         for (const auto& statement : statements)
@@ -115,12 +132,15 @@ void Interpreter::executeBlock(std::vector<std::shared_ptr<Statement>> statement
     catch (...) 
     {
         environment = previous;
-        evaluator->environment = previous;
         throw;
     }
 
     environment = previous;
-    evaluator->environment = previous;
+}
+
+void Interpreter::resolve(ExprPtr expr, int depth)
+{
+    locals[expr] = depth;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -202,8 +222,9 @@ void Interpreter::operator()(const WhileStmt& stmt) const
 
 void Interpreter::operator()(const FunctionStmt &stmt) const
 {
-    std::shared_ptr<FlintFunction> function = std::make_shared<FlintFunction>(stmt);
-    environment -> define(stmt.name.lexeme, function);
+    std::shared_ptr<FunctionStmt> statmentPtr = std::make_shared<FunctionStmt>(stmt);
+    std::shared_ptr<FlintFunction> function = std::make_shared<FlintFunction>(statmentPtr, environment);
+    environment -> define(stmt.name -> lexeme, function);
 }
 
 void Interpreter::operator()(const ReturnStmt &stmt) const
@@ -232,11 +253,7 @@ void Interpreter::operator()(const TryCatchContinueStmt& stmt) const
     {
         execute(stmt.body);
     }
-    catch(const ContinueException& e)
-    {
-    
-    }
-    
+    catch(const ContinueException& e) {}
 }
 
 // Expression statement: evaluates expression and discards result (side effects only)

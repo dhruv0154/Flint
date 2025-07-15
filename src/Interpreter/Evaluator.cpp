@@ -3,6 +3,7 @@
 #include "Interpreter/Interpreter.h"
 #include "RuntimeError.h"
 #include "FlintCallable.h"
+#include "FlintFunction.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Binary Expression Evaluation
@@ -24,13 +25,11 @@ LiteralValue Evaluator::operator()(const Binary& expr) const
         case TokenType::PLUS:
             if(std::holds_alternative<double>(left) && std::holds_alternative<double>(right))
                 return std::get<double>(left) + std::get<double>(right);
-            else if(std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right))
-                return std::get<std::string>(left) + std::get<std::string>(right);
-            else if(std::holds_alternative<std::string>(left) && std::holds_alternative<double>(right))
-                return std::get<std::string>(left) + Interpreter::stringify(std::get<double>(right));
-            else if(std::holds_alternative<std::string>(right) && std::holds_alternative<double>(left))
-                return std::get<std::string>(right) + Interpreter::stringify(std::get<double>(left));
-            message = "Invalid operand type, Operand must be a number or string.";
+            // If either is a string, convert both to strings and concatenate
+            else if (std::holds_alternative<std::string>(left) || std::holds_alternative<std::string>(right))
+                return Interpreter::stringify(left) + Interpreter::stringify(right);
+
+            message = "Operands to '+' must be both numbers or at least one string.";;
             throw RuntimeError(expr.op, message); 
 
         // Arithmetic operations
@@ -163,16 +162,34 @@ LiteralValue Evaluator::operator()(const Grouping& expr) const
 // ─────────────────────────────────────────────────────────────────────────────
 // Variable Lookup via current Interpreter's environment
 // ─────────────────────────────────────────────────────────────────────────────
-LiteralValue Evaluator::operator()(const Variable& expr) const
+LiteralValue Evaluator::operator()(const Variable& expr, ExprPtr exprPtr) const
 {
-    return environment -> get(expr.name);
+    return lookUpVariable(expr.name, exprPtr);
 }
 
-LiteralValue Evaluator::operator()(const Assignment& expr) const
+LiteralValue Evaluator::operator()(const Assignment& expr, ExprPtr exprPtr) const
 {
     LiteralValue val = evaluate(expr.value);
-    environment -> assign(expr.name, val);
+    auto it = interpreter.locals.find(exprPtr);
+
+    if(it != interpreter.locals.end())
+    {
+        int distance = it -> second;
+        interpreter.environment -> assignAt(distance, expr.name, val);
+    }
+    else
+    {
+        interpreter.globals -> assign(expr.name, val);
+    }
+
     return val;
+}
+
+LiteralValue Evaluator::operator()(const Lambda& expr) const
+{
+    std::shared_ptr<FlintFunction> fn = std::make_shared<FlintFunction>
+        (expr.function, interpreter.environment);
+    return fn;
 }
 
 LiteralValue Evaluator::operator()(const Call& expr) const
@@ -202,24 +219,25 @@ LiteralValue Evaluator::operator()(const Call& expr) const
     return function -> call(interpreter, arguments, expr.paren);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Expression Dispatcher — visits correct overload based on variant
-// ─────────────────────────────────────────────────────────────────────────────
-LiteralValue Evaluator::evaluate(const ExpressionNode& expr) const 
+LiteralValue Evaluator::evaluate(const ExprPtr& expr) const 
 {
-    return std::visit(*this, expr);
-}
+    if (!expr) return std::monostate{};
 
-LiteralValue Evaluator::evaluate(const std::shared_ptr<ExpressionNode>& ptr) const 
-{
-    if (!ptr)
-        return std::monostate{};
-    return evaluate(*ptr);
+    LiteralValue result;
+    std::visit([&](auto& actualExpr) {
+        using T = std::decay_t<decltype(actualExpr)>;
+        if constexpr (std::is_same_v<T, Variable> || std::is_same_v<T, Assignment>)
+            result = (*this)(actualExpr, expr);  // Pass ExprPtr
+        else
+            result = (*this)(actualExpr);        // Regular
+    }, *expr);
+
+    return result;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Truthiness Evaluation
-// Implements Lox-style truth rules:
+// Implements truth rules:
 //   • `false`, `null`, and `nothing` → false
 //   • everything else → true
 // ─────────────────────────────────────────────────────────────────────────────
@@ -255,6 +273,18 @@ bool Evaluator::isEqual(const LiteralValue& left, const LiteralValue& right) con
         return false;
 
     return left == right;
+}
+
+LiteralValue Evaluator::lookUpVariable(Token name, ExprPtr expr) const 
+{
+    auto it = interpreter.locals.find(expr);
+    if (it != interpreter.locals.end()) {
+        int distance = it->second;
+        auto val = interpreter.environment->getAt(distance, name);
+        return val;
+    }
+    auto val = interpreter.globals->get(name);
+    return val;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

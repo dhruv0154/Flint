@@ -27,8 +27,7 @@ class Evaluator
 {
 
 public:
-    std::shared_ptr<Environment> environment;
-    Interpreter& interpreter;
+    Interpreter &interpreter;
     // ─────────────────────────────────────────────────────────────
     // Expression Visitors
     // Each handles a specific node type from the AST.
@@ -54,11 +53,12 @@ public:
     LiteralValue operator()(const Grouping& expr) const;
 
     // Evaluates a variable reference, typically looked up from environment
-    LiteralValue operator()(const Variable& expr) const;
-
+    LiteralValue operator()(const Variable& expr, ExprPtr exprPtr) const;
 
     // Evaluates a assignment expression like a = 1 + 5, a = b etc.
-    LiteralValue operator()(const Assignment& expr) const;
+    LiteralValue operator()(const Assignment& expr, ExprPtr exprPtr) const;
+
+    LiteralValue operator()(const Lambda& expr) const;
 
     LiteralValue operator()(const Call& expr) const;
 
@@ -67,19 +67,18 @@ public:
     // These provide convenient entry points to evaluate a full expression.
     // ─────────────────────────────────────────────────────────────
 
-    // Evaluate a raw ExpressionNode (variant wrapper)
-    LiteralValue evaluate(const ExpressionNode& expr) const;
-
     // Evaluate a pointer to an ExpressionNode (shared_ptr for AST trees)
-    LiteralValue evaluate(const std::shared_ptr<ExpressionNode>& ptr) const;
+    LiteralValue evaluate(const ExprPtr& expr) const;
 
     // ─────────────────────────────────────────────────────────────
     // Utility Functions
     // ─────────────────────────────────────────────────────────────
 
     // Determines if a value is "truthy" according to Flint's rules.
-    // nil and false → false; everything else → true.
+    // nothing, false and 0 → false; everything else → true.
     bool isTruthy(const LiteralValue& value) const;
+
+    LiteralValue lookUpVariable(Token name, ExprPtr expr) const;
 
     // Compares two LiteralValues for equality (used in == operator).
     bool isEqual(const LiteralValue& left, const LiteralValue& right) const;
@@ -89,7 +88,7 @@ public:
     template<typename... Operands>
     void checkOperandType(const Token& op, const Operands&... operands) const;
 
-    Evaluator(std::shared_ptr<Environment> env, Interpreter& interpreter)
-        : environment(std::move(env)), interpreter(interpreter) {}
+    Evaluator(Interpreter& interpreter)
+        : interpreter(interpreter) {}
 
 };

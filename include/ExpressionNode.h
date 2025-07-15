@@ -23,6 +23,39 @@
 #include "Scanner/Value.h"
 
 // ─────────────────────────────────────────────────────────────
+// Forward declarations of statement structs
+// ─────────────────────────────────────────────────────────────
+struct ExpressionStmt;
+struct FunctionStmt;
+struct IfStmt;
+struct WhileStmt;
+struct ReturnStmt;
+struct BreakStmt;
+struct ContinueStmt;
+struct TryCatchContinueStmt;
+struct LetStmt;
+struct BlockStmt;
+
+// ─────────────────────────────────────────────────────────────
+// Statement Variant
+// ─────────────────────────────────────────────────────────────
+// Acts as the base type for all statements in the AST.
+// Used in: Parser output and Interpreter execution
+// ─────────────────────────────────────────────────────────────
+using Statement = std::variant<
+    ExpressionStmt,
+    FunctionStmt, 
+    WhileStmt,
+    ReturnStmt,
+    BreakStmt,
+    ContinueStmt,
+    TryCatchContinueStmt,
+    IfStmt, 
+    LetStmt, 
+    BlockStmt
+>;
+
+// ─────────────────────────────────────────────────────────────
 // Forward declarations for all supported expression types
 // ─────────────────────────────────────────────────────────────
 struct Binary;
@@ -34,6 +67,7 @@ struct Grouping;
 struct Conditional;
 struct Variable;
 struct Assignment;
+struct Lambda;
 
 // ─────────────────────────────────────────────────────────────
 // ExpressionNode variant: acts like a base class for AST nodes
@@ -47,7 +81,8 @@ using ExpressionNode = std::variant<
     Grouping,
     Conditional,
     Variable,
-    Assignment
+    Assignment,
+    Lambda
 >;
 
 // Smart pointer for expression nodes
@@ -151,4 +186,11 @@ struct Assignment
 
     Assignment(Token name, ExprPtr value)
         : name(name), value(std::move(value)) {}
+};
+
+struct Lambda
+{
+    std::shared_ptr<FunctionStmt> function;
+    Lambda(std::shared_ptr<FunctionStmt> function)
+        : function(std::move(function)) {}
 };

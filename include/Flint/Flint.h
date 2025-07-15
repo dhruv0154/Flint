@@ -84,7 +84,7 @@ private:
     // Global interpreter instance, used to evaluate parsed ASTs.
     // Shared across runFile and runPrompt.
     // ───────────────────────────────────────────────────────────────
-    static const std::unique_ptr<Interpreter> interpreter;
+    static const std::shared_ptr<Interpreter> interpreter;
 
     // Tracks whether a syntax or lexical error has occurred.
     static bool hadError;

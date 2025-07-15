@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <variant>
+#include <optional>
 #include "ExpressionNode.h"  // Defines ExprPtr
 
 // ─────────────────────────────────────────────────────────────
@@ -82,11 +83,11 @@ struct IfStmt
 
 struct FunctionStmt
 {
-    Token name;
+    std::optional<Token> name;
     std::vector<Token> params;
     std::vector<std::shared_ptr<Statement>> body;
 
-    FunctionStmt(Token name, std::vector<Token> params, std::vector<std::shared_ptr<Statement>> body) :
+    FunctionStmt(std::optional<Token> name, std::vector<Token> params, std::vector<std::shared_ptr<Statement>> body) :
         name(name), params(params), body(body) {}
 };
 

@@ -1,5 +1,6 @@
 #include "Flint/Environment.h"
 #include "RuntimeError.h"
+#include "Interpreter/Interpreter.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Environment::define
@@ -47,12 +48,24 @@ LiteralValue Environment::get(Token name)
     throw RuntimeError(name, "Unknown variable '" + name.lexeme + "'.");
 }
 
+LiteralValue Environment::getAt(int distance, Token name)
+{
+    return ancestors(distance) -> values[name.lexeme];
+}
+
+std::shared_ptr<Environment> Environment::ancestors(int distance)
+{
+    std::shared_ptr<Environment> environment = shared_from_this();
+    for(int i = 0; i < distance; i++) environment = environment -> enclosing;
+    return environment;
+}
+
 std::optional<LiteralValue> Environment::getOptional(const std::string& name) const 
 {
     if (values.find(name) != values.end()) {
         return values.at(name);
     }
-    if (enclosing != nullptr) {
+    if (enclosing) {
         return enclosing->getOptional(name);
     }
     return std::nullopt;
@@ -86,4 +99,9 @@ void Environment::assign(Token name, LiteralValue value)
     }
 
     throw RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
+}
+
+void Environment::assignAt(int distance, Token name, LiteralValue value)
+{
+    ancestors(distance) -> values[name.lexeme] = value;
 }

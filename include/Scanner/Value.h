@@ -32,7 +32,6 @@ class FlintCallable;
 using LiteralValue = std::variant<
     std::monostate,   // Represents "no value" (used when token has no literal)
     double,           // Floating-point numbers (e.g., 3.14)
-    int,              // Integer numbers (if used separately from double)
     std::string,      // String literals (e.g., "hello")
     std::nullptr_t,   // Represents Flint's `nothing` (like `null` or `nil`)
     bool,              // Boolean values: true, false
