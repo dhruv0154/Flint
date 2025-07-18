@@ -37,6 +37,7 @@ public:
 
     // Handles block statments ({ 'Collection of statements' })
     void operator()(const BlockStmt& blockStatement);
+    void operator()(const ClassStmt& classStatement);
 
     void operator()(const Binary& expr);
     void operator()(const Logical& expr);
@@ -48,6 +49,8 @@ public:
     void operator()(const Assignment& expr, ExprPtr exprPtr);
     void operator()(const Lambda& expr);
     void operator()(const Call& expr);
+    void operator()(const Get& expr);
+    void operator()(const Set& expr);
 
     void resolve(std::vector<std::shared_ptr<Statement>> statements);
     void resolve(std::shared_ptr<Statement> stmt);

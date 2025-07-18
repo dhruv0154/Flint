@@ -1,3 +1,3 @@
-func s(a){ print(a); }
-
-s(5);
+let a = 5.34234342;
+let b = 10.543342234432;
+print(a + toString(b));

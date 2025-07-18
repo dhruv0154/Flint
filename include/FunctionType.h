@@ -4,5 +4,6 @@ enum FunctionType
 {
     NONE,
     FUNCTION,
-    LAMBDA
+    LAMBDA,
+    METHOD
 };

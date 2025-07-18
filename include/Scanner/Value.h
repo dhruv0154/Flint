@@ -28,6 +28,8 @@
 #include <iostream>
 
 class FlintCallable;
+class FlintClass;
+class FlintInstance;
 
 using LiteralValue = std::variant<
     std::monostate,   // Represents "no value" (used when token has no literal)
@@ -35,5 +37,7 @@ using LiteralValue = std::variant<
     std::string,      // String literals (e.g., "hello")
     std::nullptr_t,   // Represents Flint's `nothing` (like `null` or `nil`)
     bool,              // Boolean values: true, false
-    std::shared_ptr<FlintCallable>
+    std::shared_ptr<FlintCallable>,
+    std::shared_ptr<FlintClass>,
+    std::shared_ptr<FlintInstance>
 >;

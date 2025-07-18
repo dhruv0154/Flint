@@ -10,9 +10,16 @@ void Resolver::operator()(const BlockStmt &stmt)
 
 void Resolver::operator()(const LetStmt &stmt)
 {
-    declare(stmt.name);
-    if(stmt.expression) resolve(stmt.expression);
-    define(stmt.name);
+    for (auto& [name, initializer] : stmt.declarations)
+    {
+        declare(name);
+    }
+    for (auto& [name, initializer] : stmt.declarations)
+    {
+        if (initializer)
+            resolve(initializer);
+        define(name);
+    }
 }
 
 void Resolver::operator()(const FunctionStmt &stmt)
@@ -82,6 +89,19 @@ void Resolver::operator()(const Variable &expr, ExprPtr exprPtr)
     resolveLocal(exprPtr, expr.name);
 }
 
+void Resolver::operator()(const ClassStmt& classStatement)
+{
+    declare(classStatement.name);
+    define(classStatement.name);
+
+    for (auto &&i : classStatement.methods)
+    {
+        FunctionType declaration = FunctionType::METHOD;
+        resolveFunction(std::get<FunctionStmt>(*i), declaration);
+    }
+    
+}
+
 void Resolver::operator()(const Binary &expr)
 {
     resolve(expr.left);
@@ -135,6 +155,17 @@ void Resolver::operator()(const Lambda &expr)
 void Resolver::operator()(const Unary &expr)
 {
     resolve(expr.right);
+}
+
+void Resolver::operator()(const Get& expr)
+{
+    resolve(expr.object);
+}
+
+void Resolver::operator()(const Set& expr)
+{
+    resolve(expr.value);
+    resolve(expr.object);
 }
 
 void Resolver::resolveLocal(ExprPtr expr, Token name)

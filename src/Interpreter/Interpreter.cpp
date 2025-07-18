@@ -9,6 +9,8 @@
 #include "NativeFunction.h"
 #include "FlintFunction.h"
 #include "ReturnException.h"
+#include "FlintClass.h"
+#include "FlintInstance.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Global Interpreter State
@@ -24,7 +26,7 @@ Interpreter::Interpreter()
     // Define clock()
     globals -> define("clock", std::make_shared<NativeFunction>(
     0,
-    [](const std::vector<LiteralValue>&, const Token&) -> LiteralValue {
+    [](const std::vector<LiteralValue>& args, const Token& paren) -> LiteralValue {
         auto now = std::chrono::system_clock::now();
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                       now.time_since_epoch()).count();
@@ -60,7 +62,7 @@ Interpreter::Interpreter()
 
     globals->define("print", std::make_shared<NativeFunction>(
     -1, // -1 means variadic
-    [](const std::vector<LiteralValue>& args, const Token&) -> LiteralValue {
+    [](const std::vector<LiteralValue>& args, const Token& paren) -> LiteralValue {
         for (const auto& arg : args)
             std::cout << Interpreter::stringify(arg);
         return nullptr;
@@ -86,6 +88,21 @@ Interpreter::Interpreter()
     "intDiv"
     ));
 
+    globals -> define("toString", std::make_shared<NativeFunction>(
+        1,
+        [this](const std::vector<LiteralValue>& args, const Token& paren) -> LiteralValue {
+            if(args.size() > 1) 
+                throw RuntimeError(paren, "toString() takes at most 1 argument.");
+            
+            if(!std::holds_alternative<double>(args[0]))
+            {
+                throw RuntimeError(paren, "toString() takes a number as an argument.");
+            }
+
+            return stringify(args[0]);
+        },
+        "toString"
+    ));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,6 +188,12 @@ std::string Interpreter::stringify(const LiteralValue& obj)
         }
         else if constexpr (std::is_same_v<T, std::shared_ptr<FlintCallable>>) {
             return val -> toString();  // call custom string method on function
+        }
+        else if constexpr (std::is_same_v<T, std::shared_ptr<FlintClass>>) {
+            return val -> toString();  // call custom string method on class
+        }
+        else if constexpr (std::is_same_v<T, std::shared_ptr<FlintInstance>>) {
+            return val -> toString();  // call custom string method on class
         } 
         else {
             return "<unknown>";
@@ -265,17 +288,38 @@ void Interpreter::operator()(const ExpressionStmt& exprStatement) const
 // LET statement: evaluates right-hand expression and stores it in the environment
 void Interpreter::operator()(const LetStmt& letStatement) const
 {
-    LiteralValue value = nullptr;
+    for (const auto &[name, initializer] : letStatement.declarations)
+    {
+        LiteralValue value = nullptr;
 
-    // Optional: variable declaration without initializer
-    if (letStatement.expression != nullptr)
-        value = evaluator->evaluate(letStatement.expression);
+        if (initializer != nullptr)
+        {
+            value = evaluator -> evaluate(initializer);  // evaluate expression
+        }
 
-    environment->define(letStatement.name.lexeme, value);
+        environment->define(name.lexeme, value);
+    }
 }
 
 void Interpreter::operator()(const BlockStmt& blockStatement) const
 {
     auto env = std::make_shared<Environment>(environment);
     executeBlock(blockStatement.statements, env);
+}
+
+void Interpreter::operator()(const ClassStmt& classStmt) const
+{
+    environment -> define(classStmt.name.lexeme, nullptr);
+    std::unordered_map<std::string, std::shared_ptr<FlintFunction>> methods;
+    for(auto method : classStmt.methods)
+    {
+        auto methodPtr = std::make_shared<FunctionStmt>
+            (std::get<FunctionStmt>(*method));
+        auto function = std::make_shared<FlintFunction>
+            (methodPtr, environment);
+        methods[methodPtr -> name -> lexeme] = function;
+    }
+    std::shared_ptr<FlintCallable> klass = std::make_shared<FlintClass>
+        (classStmt.name.lexeme, methods);
+    environment -> assign(classStmt.name, klass);
 }

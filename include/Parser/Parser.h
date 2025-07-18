@@ -86,6 +86,7 @@ private:
     // Statement Parsers
     // ─────────────────────────────────────────────────────────────
     std::shared_ptr<Statement> declareStatement();      // entry point for top-level stmt
+    std::shared_ptr<Statement> parseClassDeclaration();
     std::shared_ptr<Statement> parseVarDeclaration();   // `let` statement
     std::shared_ptr<Statement> parseFuncDeclaration(std::string kind);   // `func` statement
     std::shared_ptr<Statement> parseStatement();        // generic statement

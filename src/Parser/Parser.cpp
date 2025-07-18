@@ -24,16 +24,12 @@ std::shared_ptr<Statement> Parser::declareStatement()
 {
     try
     {
+        if (match({ TokenType::CLASS })) return parseClassDeclaration();
         if (match({ TokenType::FUNC })) return parseFuncDeclaration("function");
         if (match({ TokenType::LET })) 
         {
             if(check(TokenType::IDENTIFIER))
                 return parseVarDeclaration();
-            else
-            {
-                current--;
-                return parseStatement();
-            }
         }
         return parseStatement();
     }
@@ -44,6 +40,21 @@ std::shared_ptr<Statement> Parser::declareStatement()
     }
 }
 
+std::shared_ptr<Statement> Parser::parseClassDeclaration()
+{
+    Token name = consume(TokenType::IDENTIFIER, "Expected an identifier for class name.");
+    consume(TokenType::LEFT_BRACE, "Expected '{' at the start of class body.");
+
+    std::vector<std::shared_ptr<Statement>> methods;
+    while(!check(TokenType::RIGHT_BRACE) && !isAtEnd())
+    {
+        methods.push_back(parseFuncDeclaration("method"));
+    }
+
+    consume(TokenType::RIGHT_BRACE, "Expected '}' at the end of class body.");
+    return makeStmt<ClassStmt>(name, methods);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Parses variable declarations:
 //     let x = 3;
@@ -51,13 +62,21 @@ std::shared_ptr<Statement> Parser::declareStatement()
 // ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::parseVarDeclaration()
 {
-    Token name = consume(TokenType::IDENTIFIER, "Expected an indentifier.");
+    std::vector<std::pair<Token, ExprPtr>> declarations;
+    do {
+        Token name = consume(TokenType::IDENTIFIER, "Expect variable name.");
 
-    ExprPtr initializer = nullptr;
-    if (match({ TokenType::EQUAL })) initializer = expression();
+        ExprPtr initializer = nullptr;
+        if (match({ TokenType::EQUAL })) {
+            initializer = assignment(); // parse right-hand side
+        }
 
-    consume(TokenType::SEMICOLON, "Expected ';'.");
-    return makeStmt<LetStmt>(name, initializer);
+        declarations.emplace_back(name, initializer);
+    } while (match({ TokenType::COMMA })); // keep going until no more comma
+
+    consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
+
+    return makeStmt<LetStmt>(declarations);
 }
 
 std::shared_ptr<Statement> Parser::parseFuncDeclaration(std::string kind)
@@ -277,6 +296,11 @@ ExprPtr Parser::assignment()
             Token name = std::get<Variable>(*expr).name;
             return makeExpr<Assignment>(name, value);
         }
+        else if(std::holds_alternative<Get>(*expr))
+        {
+            Get get = std::get<Get>(*expr);
+            return makeExpr<Set>(get.object, get.name, value);
+        }
         throw error(equals, "Invalid assignment target.");
     }
     return expr;
@@ -334,12 +358,6 @@ ExprPtr Parser::logicalAnd()
 // ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::equality()
 {
-    if (match({ TokenType::EQUAL_EQUAL, TokenType::BANG_EQUAL })) {
-        Token op = previous();
-        error(op, "Missing left-hand operand before '" + op.lexeme + "'.");
-        return comparison();
-    }
-
     auto expr = comparison();
     while (match({ TokenType::EQUAL_EQUAL, TokenType::BANG_EQUAL })) {
         Token op = previous();
@@ -426,7 +444,12 @@ ExprPtr Parser::call()
         if (match({ TokenType::LEFT_PAREN })) 
         {
             expr = finishCall(expr);
-        } 
+        }
+        else if(match({ TokenType::DOT }))
+        {
+            Token name = consume(TokenType::IDENTIFIER, "Expected an identifier after '.'");
+            expr = makeExpr<Get>(expr, name);
+        }
         else if (check(TokenType::STRING) || check(TokenType::NUMBER) || check(TokenType::IDENTIFIER)) 
         {
             // This means we're trying to call without a left paren

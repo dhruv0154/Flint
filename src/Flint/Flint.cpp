@@ -118,23 +118,17 @@ void Flint::run(const std::string& source)
 {
     auto scanner = std::make_unique<Scanner>(source);
     auto tokens  = scanner->scanTokens();
+    
     auto parser  = std::make_unique<Parser>(tokens);
 
     auto statements = parser->parse();
 
-    // Filter out invalid (nullptr) statements
-    std::vector<std::shared_ptr<Statement>> validStatements;
-    for (auto& stmt : statements) {
-        if (stmt) validStatements.push_back(stmt);
-    }
+    if(hadError) return;
 
-    if (!validStatements.empty())
-    {
-        auto resolver = std::make_unique<Resolver>(interpreter);
-        resolver -> resolve(validStatements);
-        if(hadError) return;
-        interpreter->interpret(validStatements);
-    }
+    auto resolver = std::make_unique<Resolver>(interpreter);
+    resolver -> resolve(statements);
+    if(hadError) return;
+    interpreter->interpret(statements);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

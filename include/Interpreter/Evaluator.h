@@ -61,6 +61,8 @@ public:
     LiteralValue operator()(const Lambda& expr) const;
 
     LiteralValue operator()(const Call& expr) const;
+    LiteralValue operator()(const Get& expr) const;
+    LiteralValue operator()(const Set& expr) const;
 
     // ─────────────────────────────────────────────────────────────
     // Evaluation Helpers

@@ -35,6 +35,7 @@ struct ContinueStmt;
 struct TryCatchContinueStmt;
 struct LetStmt;
 struct BlockStmt;
+struct ClassStmt;
 
 // ─────────────────────────────────────────────────────────────
 // Statement Variant
@@ -52,7 +53,8 @@ using Statement = std::variant<
     TryCatchContinueStmt,
     IfStmt, 
     LetStmt, 
-    BlockStmt
+    BlockStmt,
+    ClassStmt
 >;
 
 // ─────────────────────────────────────────────────────────────
@@ -68,6 +70,8 @@ struct Conditional;
 struct Variable;
 struct Assignment;
 struct Lambda;
+struct Get;
+struct Set;
 
 // ─────────────────────────────────────────────────────────────
 // ExpressionNode variant: acts like a base class for AST nodes
@@ -82,7 +86,9 @@ using ExpressionNode = std::variant<
     Conditional,
     Variable,
     Assignment,
-    Lambda
+    Lambda,
+    Get,
+    Set
 >;
 
 // Smart pointer for expression nodes
@@ -193,4 +199,22 @@ struct Lambda
     std::shared_ptr<FunctionStmt> function;
     Lambda(std::shared_ptr<FunctionStmt> function)
         : function(std::move(function)) {}
+};
+
+struct Get
+{
+    ExprPtr object;
+    Token name;
+
+    Get(ExprPtr object, Token name) : object(std::move(object)), name(name) {}
+};
+
+struct Set
+{
+    ExprPtr object;
+    Token name;
+    ExprPtr value;
+
+    Set(ExprPtr object, Token name, ExprPtr value) : object(std::move(object)), 
+        name(name), value(std::move(value)) {}
 };

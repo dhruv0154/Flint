@@ -35,6 +35,7 @@ struct ContinueStmt;
 struct TryCatchContinueStmt;
 struct LetStmt;
 struct BlockStmt;
+struct ClassStmt;
 
 // ─────────────────────────────────────────────────────────────
 // Statement Variant
@@ -52,7 +53,8 @@ using Statement = std::variant<
     TryCatchContinueStmt,
     IfStmt, 
     LetStmt, 
-    BlockStmt
+    BlockStmt,
+    ClassStmt
 >;
 
 // ─────────────────────────────────────────────────────────────
@@ -137,11 +139,10 @@ struct TryCatchContinueStmt
 // ─────────────────────────────────────────────────────────────
 struct LetStmt
 {
-    Token name;          // Variable name token
-    ExprPtr expression;  // Initializing expression
+    std::vector<std::pair<Token, ExprPtr>> declarations;
 
-    LetStmt(Token name, ExprPtr expr) 
-        : name(name), expression(std::move(expr)) {}
+    LetStmt(std::vector<std::pair<Token, ExprPtr>> declarations) 
+        : declarations(declarations) {}
 };
 
 struct BlockStmt
@@ -150,4 +151,13 @@ struct BlockStmt
 
     BlockStmt(std::vector<std::shared_ptr<Statement>> statements) :
         statements(statements) {}
+};
+
+struct ClassStmt
+{
+    Token name;
+    std::vector<std::shared_ptr<Statement>> methods;
+
+    ClassStmt(Token name, std::vector<std::shared_ptr<Statement>> methods) 
+        : name(name), methods(methods) {}
 };

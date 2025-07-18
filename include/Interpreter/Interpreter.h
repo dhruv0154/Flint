@@ -32,12 +32,6 @@ private:
     mutable std::shared_ptr<Environment> environment;
 
 public:
-    // ─────────────────────────────────────────────────────────────
-    // Global singletons shared across execution
-    // ─────────────────────────────────────────────────────────────
-
-
-
 
     // ─────────────────────────────────────────────────────────────
     // Statement Visitors
@@ -66,6 +60,7 @@ public:
 
     // Handles block statments ({ 'Collection of statements' })
     void operator()(const BlockStmt& blockStatement) const;
+    void operator()(const ClassStmt& classStmt) const;
 
 
     // ─────────────────────────────────────────────────────────────

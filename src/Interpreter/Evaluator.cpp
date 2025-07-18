@@ -4,6 +4,7 @@
 #include "RuntimeError.h"
 #include "FlintCallable.h"
 #include "FlintFunction.h"
+#include "FlintInstance.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Binary Expression Evaluation
@@ -20,7 +21,7 @@ LiteralValue Evaluator::operator()(const Binary& expr) const
         // Comma expression: evaluate both but return the right value
         case TokenType::COMMA:
             return right;
-
+            
         // Arithmetic + string concatenation
         case TokenType::PLUS:
             if(std::holds_alternative<double>(left) && std::holds_alternative<double>(right))
@@ -217,6 +218,30 @@ LiteralValue Evaluator::operator()(const Call& expr) const
     }
     
     return function -> call(interpreter, arguments, expr.paren);
+}
+
+LiteralValue Evaluator::operator()(const Get& expr) const
+{
+    LiteralValue val = evaluate(expr.object);
+    if(std::holds_alternative<std::shared_ptr<FlintInstance>>(val))
+    {
+        return std::get<std::shared_ptr<FlintInstance>>(val) -> get(expr.name);
+    }
+
+    throw RuntimeError(expr.name, "Only instances have properties.");
+}
+
+LiteralValue Evaluator::operator()(const Set& expr) const
+{
+    LiteralValue object = evaluate(expr.object);
+    if(!std::holds_alternative<std::shared_ptr<FlintInstance>>(object))
+    {
+        throw RuntimeError(expr.name, "Only instances have fields.");
+    }
+
+    LiteralValue value = evaluate(expr.value);
+    std::get<std::shared_ptr<FlintInstance>>(object) -> set(expr.name, value);
+    return value;
 }
 
 LiteralValue Evaluator::evaluate(const ExprPtr& expr) const 
