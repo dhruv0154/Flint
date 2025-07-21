@@ -246,7 +246,8 @@ void Interpreter::operator()(const WhileStmt& stmt) const
 void Interpreter::operator()(const FunctionStmt &stmt) const
 {
     std::shared_ptr<FunctionStmt> statmentPtr = std::make_shared<FunctionStmt>(stmt);
-    std::shared_ptr<FlintFunction> function = std::make_shared<FlintFunction>(statmentPtr, environment);
+    std::shared_ptr<FlintFunction> function = 
+        std::make_shared<FlintFunction>(statmentPtr, environment, false);
     environment -> define(stmt.name -> lexeme, function);
 }
 
@@ -316,7 +317,7 @@ void Interpreter::operator()(const ClassStmt& classStmt) const
         auto methodPtr = std::make_shared<FunctionStmt>
             (std::get<FunctionStmt>(*method));
         auto function = std::make_shared<FlintFunction>
-            (methodPtr, environment);
+            (methodPtr, environment, methodPtr -> name -> lexeme == "init");
         methods[methodPtr -> name -> lexeme] = function;
     }
     std::shared_ptr<FlintCallable> klass = std::make_shared<FlintClass>

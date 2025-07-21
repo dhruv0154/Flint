@@ -494,6 +494,7 @@ ExprPtr Parser::primary()
     if (match({ TokenType::NUMBER, TokenType::STRING }))
         return makeExpr<Literal>(previous().literal);
     if (match({ TokenType::FUNC })) return lambda();
+    if (match({ TokenType::THIS })) return makeExpr<This>(previous());
     if (match({ TokenType::IDENTIFIER }))
     {
         Token name = previous();

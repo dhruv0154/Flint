@@ -1,9 +1,10 @@
 #pragma once
 
-enum FunctionType
+enum class FunctionType
 {
     NONE,
     FUNCTION,
     LAMBDA,
-    METHOD
+    METHOD,
+    INITIALIZER
 };

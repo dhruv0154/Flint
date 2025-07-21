@@ -189,7 +189,7 @@ LiteralValue Evaluator::operator()(const Assignment& expr, ExprPtr exprPtr) cons
 LiteralValue Evaluator::operator()(const Lambda& expr) const
 {
     std::shared_ptr<FlintFunction> fn = std::make_shared<FlintFunction>
-        (expr.function, interpreter.environment);
+        (expr.function, interpreter.environment, false);
     return fn;
 }
 
@@ -244,6 +244,11 @@ LiteralValue Evaluator::operator()(const Set& expr) const
     return value;
 }
 
+LiteralValue Evaluator::operator()(const This& expr, ExprPtr exprPtr) const
+{
+    return lookUpVariable(expr.keyword, exprPtr);
+}
+
 LiteralValue Evaluator::evaluate(const ExprPtr& expr) const 
 {
     if (!expr) return std::monostate{};
@@ -251,7 +256,8 @@ LiteralValue Evaluator::evaluate(const ExprPtr& expr) const
     LiteralValue result;
     std::visit([&](auto& actualExpr) {
         using T = std::decay_t<decltype(actualExpr)>;
-        if constexpr (std::is_same_v<T, Variable> || std::is_same_v<T, Assignment>)
+        if constexpr (std::is_same_v<T, Variable> || 
+            std::is_same_v<T, Assignment> || std::is_same_v<T, This>)
             result = (*this)(actualExpr, expr);  // Pass ExprPtr
         else
             result = (*this)(actualExpr);        // Regular

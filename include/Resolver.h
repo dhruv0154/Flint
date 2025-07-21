@@ -4,6 +4,7 @@
 #include "Stmt.h"
 #include "ExpressionNode.h"
 #include "FunctionType.h"
+#include "ClassType.h"
 
 class Interpreter;
 
@@ -13,6 +14,7 @@ private:
     std::shared_ptr<Interpreter> interpreter;
     std::vector<std::unordered_map<std::string, bool>> scopes;
     FunctionType currentFunction;
+    ClassType currentClass;
 public:
 
     void operator()(const WhileStmt& stmt);
@@ -51,6 +53,7 @@ public:
     void operator()(const Call& expr);
     void operator()(const Get& expr);
     void operator()(const Set& expr);
+    void operator()(const This& expr, ExprPtr exprPtr);
 
     void resolve(std::vector<std::shared_ptr<Statement>> statements);
     void resolve(std::shared_ptr<Statement> stmt);
@@ -65,5 +68,6 @@ public:
     void define(Token name);
 
     Resolver(std::shared_ptr<Interpreter> interpreter) 
-        : interpreter(interpreter), currentFunction(FunctionType::NONE) {}
+        : interpreter(interpreter), currentFunction(FunctionType::NONE), 
+        currentClass(ClassType::NONE) {}
 };

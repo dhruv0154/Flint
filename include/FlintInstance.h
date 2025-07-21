@@ -8,7 +8,7 @@
 
 class FlintClass;
 
-class FlintInstance
+class FlintInstance : public std::enable_shared_from_this<FlintInstance>
 {
 private:
     std::shared_ptr<FlintClass> klass;

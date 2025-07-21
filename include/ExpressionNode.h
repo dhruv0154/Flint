@@ -72,6 +72,7 @@ struct Assignment;
 struct Lambda;
 struct Get;
 struct Set;
+struct This;
 
 // ─────────────────────────────────────────────────────────────
 // ExpressionNode variant: acts like a base class for AST nodes
@@ -88,7 +89,8 @@ using ExpressionNode = std::variant<
     Assignment,
     Lambda,
     Get,
-    Set
+    Set,
+    This
 >;
 
 // Smart pointer for expression nodes
@@ -217,4 +219,11 @@ struct Set
 
     Set(ExprPtr object, Token name, ExprPtr value) : object(std::move(object)), 
         name(name), value(std::move(value)) {}
+};
+
+struct This
+{
+    Token keyword;
+
+    This(Token keyword) : keyword(keyword) {}
 };

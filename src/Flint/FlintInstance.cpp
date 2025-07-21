@@ -11,7 +11,12 @@ LiteralValue FlintInstance::get(Token name)
 {
     if(fields.count(name.lexeme)) return fields[name.lexeme];
     LiteralValue method = klass -> findMethod(name.lexeme);
-    if(!std::holds_alternative<nullptr_t>(method)) return method;
+    if(!std::holds_alternative<nullptr_t>(method))
+    {
+        auto callable = std::get<std::shared_ptr<FlintCallable>>(method);
+        auto fn = std::dynamic_pointer_cast<FlintFunction>(callable);
+        return fn -> bind(shared_from_this());
+    }
     throw RuntimeError(name, "Undefined property '" + name.lexeme + "'." );
 }
 

@@ -63,6 +63,7 @@ public:
     LiteralValue operator()(const Call& expr) const;
     LiteralValue operator()(const Get& expr) const;
     LiteralValue operator()(const Set& expr) const;
+    LiteralValue operator()(const This& expr, ExprPtr exprPtr) const;
 
     // ─────────────────────────────────────────────────────────────
     // Evaluation Helpers

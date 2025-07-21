@@ -1,3 +1,18 @@
-let a = 5.34234342;
-let b = 10.543342234432;
-print(a + toString(b));
+class Cake 
+{
+  init()
+  { 
+    this.flavor = "abc";
+  }
+  taste() 
+  {
+    let adjective = "delicious";
+    print ("The " + this.flavor + " cake is " + adjective + "!");
+  }
+}
+let cake = Cake();
+cake.flavor;
+cake.taste(); // Prints "The German chocolate cake is delicious!".
+let cake2 = Cake();
+cake2.flavor = "Strawberry";
+cake2.taste();

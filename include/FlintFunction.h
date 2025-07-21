@@ -9,38 +9,19 @@ class FlintFunction : public FlintCallable
 private:
     std::shared_ptr<FunctionStmt> declaration;
     std::shared_ptr<Environment> closure;
+    bool isInitializer;
 public:
-    FlintFunction(std::shared_ptr<FunctionStmt> declaration, std::shared_ptr<Environment> closure) 
-    : declaration(std::move(declaration)), closure(closure) {}
+    FlintFunction(std::shared_ptr<FunctionStmt> declaration, 
+            std::shared_ptr<Environment> closure,
+            bool isInitializer) 
+    : declaration(std::move(declaration)), closure(closure), isInitializer(isInitializer) {}
 
     LiteralValue call(Interpreter &interpreter, 
-        const std::vector<LiteralValue> &args, const Token &paren) override
-    {
-        std::shared_ptr<Environment> environment = std::make_shared<Environment>(closure);
+        const std::vector<LiteralValue> &args, const Token &paren) override;
 
-        for(size_t i = 0; i < declaration -> params.size(); i++)
-        {
-            environment -> define(declaration -> params.at(i).lexeme, args.at(i));
-        }
-        try
-        {
-            interpreter.executeBlock(declaration -> body, environment);
-        }
-        catch(const ReturnException &e)
-        {
-            return e.val;
-        }
+    int arity() const override;
 
-        return nullptr;
-    }
+    std::string toString() const override;
 
-    int arity() const override { return declaration -> params.size(); }
-
-    std::string toString() const override 
-    {
-        if(declaration -> name.has_value())
-            return "<fn " + declaration -> name -> lexeme + ">";
-        else
-            return "<lambda>";
-    }
+    LiteralValue bind(LiteralValue instance);
 };

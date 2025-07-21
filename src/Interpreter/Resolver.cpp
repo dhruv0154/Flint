@@ -56,6 +56,10 @@ void Resolver::operator()(const ReturnStmt &stmt)
     {
         Flint::error(stmt.keyword, "Can't return from outside a function.");
     }
+    if(currentFunction == FunctionType::INITIALIZER)
+    {
+        Flint::error(stmt.keyword, "Can't return from an initializer.");
+    }
     if(stmt.val) resolve(stmt.val);
 }
 
@@ -91,15 +95,23 @@ void Resolver::operator()(const Variable &expr, ExprPtr exprPtr)
 
 void Resolver::operator()(const ClassStmt& classStatement)
 {
+    ClassType enclosingClass = currentClass;
+    currentClass = ClassType::CLASS;
     declare(classStatement.name);
     define(classStatement.name);
+
+    beginScope();
+    scopes.back()["this"] = true;
 
     for (auto &&i : classStatement.methods)
     {
         FunctionType declaration = FunctionType::METHOD;
-        resolveFunction(std::get<FunctionStmt>(*i), declaration);
+        FunctionStmt method = std::get<FunctionStmt>(*i);
+        if(method.name -> lexeme == "init") declaration = FunctionType::INITIALIZER;
+        resolveFunction(method, declaration);
     }
-    
+    currentClass = enclosingClass;
+    endScope();
 }
 
 void Resolver::operator()(const Binary &expr)
@@ -166,6 +178,13 @@ void Resolver::operator()(const Set& expr)
 {
     resolve(expr.value);
     resolve(expr.object);
+}
+
+void Resolver::operator()(const This& expr, ExprPtr exprPtr)
+{
+    if(currentClass == ClassType::NONE) 
+        Flint::error(expr.keyword, "Use of 'this' outside a class is not allowed.");
+    resolveLocal(exprPtr, expr.keyword);
 }
 
 void Resolver::resolveLocal(ExprPtr expr, Token name)
@@ -243,7 +262,9 @@ void Resolver::resolve(ExprPtr expr)
 {
     std::visit([&](auto& actualExpr) {
         using T = std::decay_t<decltype(actualExpr)>;
-        if constexpr (std::is_same_v<T, Variable> || std::is_same_v<T, Assignment>)
+        if constexpr (std::is_same_v<T, Variable> 
+            || std::is_same_v<T, Assignment> || 
+                std::is_same_v<T, This>)
             (*this)(actualExpr, expr);
         else
             (*this)(actualExpr);     
