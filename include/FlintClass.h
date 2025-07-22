@@ -4,17 +4,19 @@
 #include <memory>
 #include <unordered_map>
 #include "FlintCallable.h"
+#include "FlintInstance.h"
 
-class FlintInstance;
 class FlintFunction;
 
-class FlintClass : public FlintCallable, public std::enable_shared_from_this<FlintClass>
+class FlintClass : public FlintCallable, public FlintInstance
 {
 private:
     const std::string name;
-    mutable std::unordered_map<std::string, std::shared_ptr<FlintFunction>> methods;
+    mutable std::unordered_map<std::string, std::shared_ptr<FlintFunction>> instanceMethods;
+    mutable std::unordered_map<std::string, std::shared_ptr<FlintFunction>> classMethods;
 public:
     std::string toString() const override { return name; }
+    LiteralValue get(Token name, Interpreter& interpreter) override;
 
     LiteralValue call(Interpreter &interpreter, 
         const std::vector<LiteralValue> &args, const Token &paren) override;
@@ -23,6 +25,9 @@ public:
     int arity() const override;
     FlintClass(std::string name,
             std::unordered_map<std::string, 
-                std::shared_ptr<FlintFunction>> methods) : 
-                    name(name), methods(methods) {}
+                std::shared_ptr<FlintFunction>> instanceMethods,
+            std::unordered_map<std::string, 
+                std::shared_ptr<FlintFunction>> classMethods) : 
+                    name(name), instanceMethods(instanceMethods),
+                     classMethods(classMethods) {}
 };

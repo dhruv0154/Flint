@@ -1,11 +1,13 @@
 #include "FlintClass.h"
 #include "FlintFunction.h"
 #include "FlintInstance.h"
+#include "RuntimeError.h"
 
 LiteralValue FlintClass::call(Interpreter &interpreter, 
         const std::vector<LiteralValue> &args, const Token &paren)
 {
-    std::shared_ptr<FlintClass> sharedThis = std::static_pointer_cast<FlintClass>(shared_from_this());
+    auto instPtr = FlintInstance::shared_from_this();
+    auto sharedThis = std::static_pointer_cast<FlintClass>(instPtr);
     std::shared_ptr<FlintInstance> instance = std::make_shared<FlintInstance>(sharedThis);
     std::shared_ptr<FlintFunction> intializer = findMethod("init");
     if(intializer != nullptr) 
@@ -18,8 +20,20 @@ LiteralValue FlintClass::call(Interpreter &interpreter,
 
 std::shared_ptr<FlintFunction> FlintClass::findMethod(std::string name) const
 {
-    if(methods.count(name)) return methods[name];
+    if(instanceMethods.count(name))
+    {
+        return instanceMethods[name];
+    }
     return nullptr;
+}
+
+LiteralValue FlintClass::get(Token name, Interpreter& interpreter)
+{      
+    if (classMethods.find(name.lexeme) != classMethods.end()) {
+        return classMethods[name.lexeme];
+    }
+
+    throw RuntimeError(name, "Undefined static property '" + name.lexeme + "'.");
 }
 
 int FlintClass::arity() const

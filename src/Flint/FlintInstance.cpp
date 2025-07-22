@@ -7,17 +7,20 @@ std::string FlintInstance::toString() const {
     return klass->toString() + " instance";
 }
 
-LiteralValue FlintInstance::get(Token name)
+LiteralValue FlintInstance::get(Token name, Interpreter& interpreter)
 {
     if(fields.count(name.lexeme)) return fields[name.lexeme];
     LiteralValue method = klass -> findMethod(name.lexeme);
-    if(!std::holds_alternative<nullptr_t>(method))
+    if (std::holds_alternative<std::shared_ptr<FlintCallable>>(method)) 
     {
         auto callable = std::get<std::shared_ptr<FlintCallable>>(method);
-        auto fn = std::dynamic_pointer_cast<FlintFunction>(callable);
-        return fn -> bind(shared_from_this());
+        if (callable) 
+        {
+            auto fn = std::dynamic_pointer_cast<FlintFunction>(callable);
+            return fn -> bind(shared_from_this());
+        }
     }
-    throw RuntimeError(name, "Undefined property '" + name.lexeme + "'." );
+    throw RuntimeError(name, "Undefined property '" + name.lexeme + "'.");
 }
 
 void FlintInstance::set(Token name, LiteralValue object)

@@ -1,18 +1,18 @@
-class Cake 
-{
-  init()
-  { 
-    this.flavor = "abc";
-  }
-  taste() 
+class Cake {
+  class taste()
   {
+    print("5");
+  }
+  init(flavor)
+  {
+    this.flavor = flavor;
+  }
+  taste() {
     let adjective = "delicious";
     print ("The " + this.flavor + " cake is " + adjective + "!");
   }
 }
-let cake = Cake();
-cake.flavor;
+
+let cake = Cake("ABc");
 cake.taste(); // Prints "The German chocolate cake is delicious!".
-let cake2 = Cake();
-cake2.flavor = "Strawberry";
-cake2.taste();
+Cake.taste();

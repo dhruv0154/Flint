@@ -11,7 +11,8 @@ private:
     std::shared_ptr<Environment> closure;
     bool isInitializer;
 public:
-    FlintFunction(std::shared_ptr<FunctionStmt> declaration, 
+
+     FlintFunction(std::shared_ptr<FunctionStmt> declaration, 
             std::shared_ptr<Environment> closure,
             bool isInitializer) 
     : declaration(std::move(declaration)), closure(closure), isInitializer(isInitializer) {}

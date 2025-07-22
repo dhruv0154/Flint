@@ -103,7 +103,14 @@ void Resolver::operator()(const ClassStmt& classStatement)
     beginScope();
     scopes.back()["this"] = true;
 
-    for (auto &&i : classStatement.methods)
+    for (auto &&i : classStatement.classMethods)
+    {
+        FunctionType declaration = FunctionType::METHOD;
+        FunctionStmt method = std::get<FunctionStmt>(*i);
+        if(method.name -> lexeme == "init") declaration = FunctionType::INITIALIZER;
+        resolveFunction(method, declaration);
+    }
+    for (auto &&i : classStatement.instanceMethods)
     {
         FunctionType declaration = FunctionType::METHOD;
         FunctionStmt method = std::get<FunctionStmt>(*i);

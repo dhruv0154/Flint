@@ -45,14 +45,18 @@ std::shared_ptr<Statement> Parser::parseClassDeclaration()
     Token name = consume(TokenType::IDENTIFIER, "Expected an identifier for class name.");
     consume(TokenType::LEFT_BRACE, "Expected '{' at the start of class body.");
 
-    std::vector<std::shared_ptr<Statement>> methods;
+    std::vector<std::shared_ptr<Statement>> instanceMethods;
+    std::vector<std::shared_ptr<Statement>> classMethods;
     while(!check(TokenType::RIGHT_BRACE) && !isAtEnd())
     {
-        methods.push_back(parseFuncDeclaration("method"));
+        if(match({ TokenType::CLASS })) 
+            classMethods.push_back(parseFuncDeclaration("method"));
+        else
+            instanceMethods.push_back(parseFuncDeclaration("method"));
     }
 
     consume(TokenType::RIGHT_BRACE, "Expected '}' at the end of class body.");
-    return makeStmt<ClassStmt>(name, methods);
+    return makeStmt<ClassStmt>(name, instanceMethods, classMethods);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -82,20 +86,18 @@ std::shared_ptr<Statement> Parser::parseVarDeclaration()
 std::shared_ptr<Statement> Parser::parseFuncDeclaration(std::string kind)
 {
     Token name = consume(TokenType::IDENTIFIER, "Expected " + kind + " name.");
-    consume(TokenType::LEFT_PAREN, "Expected '(' at the start of " + kind + " name.");
+    
     std::vector<Token> params;
-
+   
+    consume(TokenType::LEFT_PAREN, "Expected '(' at the start of " + kind + " name.");
     if(!check(TokenType::RIGHT_PAREN))
     {
         do
         {
             if(params.size() >= 255) error(peek(), "More than 255 arguments are not allowed.");
-
             params.emplace_back(consume(TokenType::IDENTIFIER, "Expected parameter name."));
         } while (match({ TokenType::COMMA }));
-        
     }
-
     consume(TokenType::RIGHT_PAREN, "Expected ')' after function parameters.");
 
     consume(TokenType::LEFT_BRACE, "Expected '{' at the start of " + kind + " body.");

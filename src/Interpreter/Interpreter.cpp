@@ -311,16 +311,25 @@ void Interpreter::operator()(const BlockStmt& blockStatement) const
 void Interpreter::operator()(const ClassStmt& classStmt) const
 {
     environment -> define(classStmt.name.lexeme, nullptr);
-    std::unordered_map<std::string, std::shared_ptr<FlintFunction>> methods;
-    for(auto method : classStmt.methods)
+    std::unordered_map<std::string, std::shared_ptr<FlintFunction>> classMethods;
+    std::unordered_map<std::string, std::shared_ptr<FlintFunction>> instanceMethods;
+    for(auto method : classStmt.classMethods)
     {
         auto methodPtr = std::make_shared<FunctionStmt>
             (std::get<FunctionStmt>(*method));
         auto function = std::make_shared<FlintFunction>
             (methodPtr, environment, methodPtr -> name -> lexeme == "init");
-        methods[methodPtr -> name -> lexeme] = function;
+        classMethods[methodPtr -> name -> lexeme] = function;
+    }
+    for(auto method : classStmt.instanceMethods)
+    {
+        auto methodPtr = std::make_shared<FunctionStmt>
+            (std::get<FunctionStmt>(*method));
+        auto function = std::make_shared<FlintFunction>
+            (methodPtr, environment, methodPtr -> name -> lexeme == "init");
+        instanceMethods[methodPtr -> name -> lexeme] = function;
     }
     std::shared_ptr<FlintCallable> klass = std::make_shared<FlintClass>
-        (classStmt.name.lexeme, methods);
+        (classStmt.name.lexeme, instanceMethods, classMethods);
     environment -> assign(classStmt.name, klass);
 }

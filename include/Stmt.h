@@ -89,7 +89,8 @@ struct FunctionStmt
     std::vector<Token> params;
     std::vector<std::shared_ptr<Statement>> body;
 
-    FunctionStmt(std::optional<Token> name, std::vector<Token> params, std::vector<std::shared_ptr<Statement>> body) :
+    FunctionStmt(std::optional<Token> name, std::vector<Token> params, 
+        std::vector<std::shared_ptr<Statement>> body) :
         name(name), params(params), body(body) {}
 };
 
@@ -156,8 +157,10 @@ struct BlockStmt
 struct ClassStmt
 {
     Token name;
-    std::vector<std::shared_ptr<Statement>> methods;
+    std::vector<std::shared_ptr<Statement>> instanceMethods;
+    std::vector<std::shared_ptr<Statement>> classMethods;
 
-    ClassStmt(Token name, std::vector<std::shared_ptr<Statement>> methods) 
-        : name(name), methods(methods) {}
+    ClassStmt(Token name, std::vector<std::shared_ptr<Statement>> instanceMethods,
+    std::vector<std::shared_ptr<Statement>> classMethods) 
+        : name(name), instanceMethods(instanceMethods), classMethods(classMethods) {}
 };

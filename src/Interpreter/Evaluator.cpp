@@ -5,6 +5,7 @@
 #include "FlintCallable.h"
 #include "FlintFunction.h"
 #include "FlintInstance.h"
+#include "FlintClass.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Binary Expression Evaluation
@@ -196,8 +197,9 @@ LiteralValue Evaluator::operator()(const Lambda& expr) const
 LiteralValue Evaluator::operator()(const Call& expr) const
 {
     LiteralValue callee = evaluate(expr.callee);
-
+   
     std::vector<LiteralValue> arguments;
+
     for (ExprPtr argument : expr.arguments)
     {
         arguments.emplace_back(evaluate(argument));
@@ -216,16 +218,27 @@ LiteralValue Evaluator::operator()(const Call& expr) const
         "Function expects " + std::to_string(function -> arity()) + 
         " arguments but got " + std::to_string(arguments.size()));
     }
-    
-    return function -> call(interpreter, arguments, expr.paren);
+
+    LiteralValue result = function->call(interpreter, arguments, expr.paren);
+    return result;
 }
 
 LiteralValue Evaluator::operator()(const Get& expr) const
 {
     LiteralValue val = evaluate(expr.object);
-    if(std::holds_alternative<std::shared_ptr<FlintInstance>>(val))
+    if(std::holds_alternative<std::shared_ptr<FlintCallable>>(val))
     {
-        return std::get<std::shared_ptr<FlintInstance>>(val) -> get(expr.name);
+        
+        std::shared_ptr<FlintClass> classPtr =
+        std::dynamic_pointer_cast<FlintClass>(std::get<std::shared_ptr<FlintCallable>>(val));
+        if(classPtr)
+        {
+            return classPtr -> get(expr.name, interpreter);
+        }
+    }
+    else if(std::holds_alternative<std::shared_ptr<FlintInstance>>(val))
+    {
+        return std::get<std::shared_ptr<FlintInstance>>(val) -> get(expr.name, interpreter);
     }
 
     throw RuntimeError(expr.name, "Only instances have properties.");
