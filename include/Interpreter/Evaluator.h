@@ -1,97 +1,101 @@
-#pragma once
+#pragma once  // Ensure single inclusion
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Evaluator Class
-//  ─────────────────────────────────────────────────────────────────────────────
-//  This class implements the logic to evaluate each type of expression node
-//  in the Flint AST (Abstract Syntax Tree).
+//  Evaluator.h – Expression Evaluation for Flint
+// ─────────────────────────────────────────────────────────────────────────────
+//  Defines the Evaluator class, which implements the visitor pattern
+//  to compute the value of each AST expression node without side effects.
+//  Used internally by the Interpreter to evaluate expressions.
 //
-//  Implements the visitor pattern via overloaded `operator()` functions for
-//  each expression type (Binary, Unary, Literal, etc.).
-//
-//  Each method returns a `LiteralValue`, which is a variant holding runtime
-//  values such as double, bool, string, or nil.
-//
-//  This class is called by the Interpreter, but is focused purely on computing
-//  expression results — it has no side effects like printing or variable assignment.
+//  Key responsibilities:
+//    - Evaluate expressions (Binary, Unary, Literal, etc.)
+//    - Enforce type checks and truthiness rules
+//    - Perform variable lookups via environment chain
+//    - Handle function calls, property access, and assignments
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include <memory>
 #include <cmath>
-#include "ExpressionNode.h"
-#include "Flint/Environment.h"
+#include "ExpressionNode.h"           // AST node definitions (ExprPtr)
+#include "Flint/Environment.h"        // For variable resolution
 
-class Interpreter;
+class Interpreter;  // Forward declare to avoid cyclic include
 
-class Evaluator 
-{
-
+class Evaluator {
 public:
-    Interpreter &interpreter;
-    // ─────────────────────────────────────────────────────────────
-    // Expression Visitors
-    // Each handles a specific node type from the AST.
-    // Called via std::visit on ExpressionNode's std::variant.
-    // ─────────────────────────────────────────────────────────────
+    Interpreter& interpreter;  // Reference to the Interpreter invoking this evaluator
 
-    // Evaluates binary expressions (e.g., a + b, a > b, a == b)
+    //──────────────────────────────────────────────────────────────────────────
+    // Expression Visitors (overloaded operator() for each AST node type)
+    // Called via std::visit on ExpressionNode variant.
+    //──────────────────────────────────────────────────────────────────────────
+
+    // Compute a + b, a - b, comparisons, equality, etc.
     LiteralValue operator()(const Binary& expr) const;
 
-    // Evaluates logical 'or' and 'and' expressions (e.g. a == 0 && b == 1)
+    // Compute logical AND/OR with short-circuiting.
     LiteralValue operator()(const Logical& expr) const;
 
-    // Evaluates conditional (ternary) expressions (e.g., cond ? a : b)
+    // Compute ternary expressions: condition ? left : right.
     LiteralValue operator()(const Conditional& expr) const;
 
-    // Evaluates unary expressions (e.g., -a, !b)
+    // Compute unary operations: !value, -value.
     LiteralValue operator()(const Unary& expr) const;
 
-    // Evaluates literals (e.g., numbers, booleans, nil)
+    // Return the literal value (numbers, strings, booleans, nil).
     LiteralValue operator()(const Literal& expr) const;
 
-    // Evaluates grouped expressions like (a + b)
+    // Evaluate grouped sub-expression: (expr).
     LiteralValue operator()(const Grouping& expr) const;
 
-    // Evaluates a variable reference, typically looked up from environment
+    // Look up variable value in appropriate environment.
     LiteralValue operator()(const Variable& expr, ExprPtr exprPtr) const;
 
-    // Evaluates a assignment expression like a = 1 + 5, a = b etc.
+    // Evaluate assignment: update variable and return new value.
     LiteralValue operator()(const Assignment& expr, ExprPtr exprPtr) const;
 
+    // Create a callable for a lambda expression.
     LiteralValue operator()(const Lambda& expr) const;
 
+    // Invoke a function, class constructor, or getter.
     LiteralValue operator()(const Call& expr) const;
+
+    // Access a property on an object: object.name.
     LiteralValue operator()(const Get& expr) const;
+
+    // Assign to a property: object.name = value.
     LiteralValue operator()(const Set& expr) const;
+
+    // Handle 'this' keyword to reference current instance.
     LiteralValue operator()(const This& expr, ExprPtr exprPtr) const;
 
-    // ─────────────────────────────────────────────────────────────
+    //──────────────────────────────────────────────────────────────────────────
     // Evaluation Helpers
-    // These provide convenient entry points to evaluate a full expression.
-    // ─────────────────────────────────────────────────────────────
+    //──────────────────────────────────────────────────────────────────────────
 
-    // Evaluate a pointer to an ExpressionNode (shared_ptr for AST trees)
+    // Entry point: evaluate an ExprPtr by dispatching to the above visitors.
     LiteralValue evaluate(const ExprPtr& expr) const;
 
-    // ─────────────────────────────────────────────────────────────
+    //──────────────────────────────────────────────────────────────────────────
     // Utility Functions
-    // ─────────────────────────────────────────────────────────────
+    //──────────────────────────────────────────────────────────────────────────
 
-    // Determines if a value is "truthy" according to Flint's rules.
-    // nothing, false and 0 → false; everything else → true.
+    // Determine truthiness: nil, false, and numeric zero are false; others true.
     bool isTruthy(const LiteralValue& value) const;
 
+    // Resolve variable using static analysis distance or default lookup.
     LiteralValue lookUpVariable(Token name, ExprPtr expr) const;
 
-    // Compares two LiteralValues for equality (used in == operator).
+    // Compare two values for equality (handles numeric and other types).
     bool isEqual(const LiteralValue& left, const LiteralValue& right) const;
 
-    // Ensures all operands are of a valid type (e.g., numeric for arithmetic).
-    // Used in binary/unary op validation.
+    // Enforce that operands match expected types (e.g., numbers for +).
     template<typename... Operands>
     void checkOperandType(const Token& op, const Operands&... operands) const;
 
-    Evaluator(Interpreter& interpreter)
+    //──────────────────────────────────────────────────────────────────────────
+    // Constructor: binds this evaluator to its interpreter
+    //──────────────────────────────────────────────────────────────────────────
+    explicit Evaluator(Interpreter& interpreter)
         : interpreter(interpreter) {}
-
 };

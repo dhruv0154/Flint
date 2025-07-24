@@ -7,32 +7,32 @@
 // The scanner also handles whitespace, comments, and error reporting.
 // ------------------------------------------------------------
 
-#include "Scanner\Scanner.h"
-#include "Flint\Flint.h"
+#include "Scanner/Scanner.h"
+#include "Flint/Flint.h"
 
 // ---------------------------------------------------------------------------
 // Static map of reserved keywords mapped to their TokenTypes.
-// If an identifier matches one of these, it’s parsed as a keyword.
+// If an identifier matches one of these, it’s emitted as that keyword token.
 // ---------------------------------------------------------------------------
 std::unordered_map<std::string, TokenType> Scanner::keywords = 
 {
-    {"and", TokenType::AND},
-    {"or", TokenType::OR},
-    {"if", TokenType::IF},
-    {"else", TokenType::ELSE},
-    {"true", TokenType::TRUE},
-    {"false", TokenType::FALSE},
-    {"for", TokenType::FOR},
-    {"while", TokenType::WHILE},
-    {"break", TokenType::BREAK},
+    {"and",      TokenType::AND},
+    {"or",       TokenType::OR},
+    {"if",       TokenType::IF},
+    {"else",     TokenType::ELSE},
+    {"true",     TokenType::TRUE},
+    {"false",    TokenType::FALSE},
+    {"for",      TokenType::FOR},
+    {"while",    TokenType::WHILE},
+    {"break",    TokenType::BREAK},
     {"continue", TokenType::CONTINUE},
-    {"func", TokenType::FUNC},
-    {"nothing", TokenType::NOTHING},
-    {"return", TokenType::RETURN},
-    {"class", TokenType::CLASS},
-    {"super", TokenType::SUPER},
-    {"this", TokenType::THIS},
-    {"let", TokenType::LET}
+    {"func",     TokenType::FUNC},
+    {"nothing",  TokenType::NOTHING},
+    {"return",   TokenType::RETURN},
+    {"class",    TokenType::CLASS},
+    {"super",    TokenType::SUPER},
+    {"this",     TokenType::THIS},
+    {"let",      TokenType::LET}
 };
 
 // ---------------------------------------------------------------------------
@@ -45,16 +45,18 @@ Scanner::Scanner(const std::string& source)
 
 // ---------------------------------------------------------------------------
 // Main scanner loop: tokenizes the entire source code into tokens.
-// Adds an EOF token at the end.
+// Adds an EOF token at the end to signal end-of-input.
 // ---------------------------------------------------------------------------
 std::vector<Token> Scanner::scanTokens()
 {
+    // Continue until we've consumed every character
     while (!isAtEnd())
     {
-        start = current;
-        scanToken();
+        start = current;     // mark beginning of next lexeme
+        scanToken();         // scan one token
     }
 
+    // Append end-of-file token so parser knows when to stop
     tokens.push_back(Token(TokenType::END_OF_FILE, "", std::monostate{}, line));
     return tokens;
 }
@@ -65,85 +67,99 @@ std::vector<Token> Scanner::scanTokens()
 // ---------------------------------------------------------------------------
 void Scanner::scanToken()
 {
-    char c = advance();
+    char c = advance();  // consume next char
     switch (c)
     {
         // Single-character tokens
-        case '(': addToken(TokenType::LEFT_PAREN); break;
+        case '(': addToken(TokenType::LEFT_PAREN);  break;
         case ')': addToken(TokenType::RIGHT_PAREN); break;
-        case '{': addToken(TokenType::LEFT_BRACE); break;
+        case '{': addToken(TokenType::LEFT_BRACE);  break;
         case '}': addToken(TokenType::RIGHT_BRACE); break;
-        case ',': addToken(TokenType::COMMA); break;
-        case '.': addToken(TokenType::DOT); break;
-        case '+': addToken(TokenType::PLUS); break;
-        case '-': addToken(TokenType::MINUS); break;
-        case ';': addToken(TokenType::SEMICOLON); break;
-        case '*': addToken(TokenType::STAR); break;
-        case '%': addToken(TokenType::MODULO); break;
-        case ':': addToken(TokenType::COLON); break;
+        case ',': addToken(TokenType::COMMA);       break;
+        case '.': addToken(TokenType::DOT);         break;
+        case '+': addToken(TokenType::PLUS);        break;
+        case '-': addToken(TokenType::MINUS);       break;
+        case ';': addToken(TokenType::SEMICOLON);   break;
+        case '*': addToken(TokenType::STAR);        break;
+        case '%': addToken(TokenType::MODULO);      break;
+        case ':': addToken(TokenType::COLON);       break;
         case '?': addToken(TokenType::QUESTION_MARK); break;
+
+        // Handle '&&' and '&' with custom error messages
         case '&':
             if (match('&')) {
+                // discourage C-style logical ops
                 Flint::error(current - 2, "Use 'and' instead of '&&'");
-                break;
+            } else {
+                Flint::error(current - 1, "Unexpected character '&'");
             }
-            Flint::error(current - 1, "Unexpected character '&'");
             break;
 
+        // Handle '||' and '|'
         case '|':
             if (match('|')) {
                 Flint::error(current - 2, "Use 'or' instead of '||'");
-                break;
+            } else {
+                Flint::error(current - 1, "Unexpected character '|'");
             }
-        Flint::error(current - 1, "Unexpected character '|'");
-        break;
+            break;
 
+        // Two‑character operators: !=, ==, <=, >=
+        case '!':
+            addToken(match('=') ? TokenType::BANG_EQUAL : TokenType::BANG);
+            break;
+        case '=':
+            addToken(match('=') ? TokenType::EQUAL_EQUAL : TokenType::EQUAL);
+            break;
+        case '<':
+            addToken(match('=') ? TokenType::LESS_EQUAL : TokenType::LESS);
+            break;
+        case '>':
+            addToken(match('=') ? TokenType::GREATER_EQUAL : TokenType::GREATER);
+            break;
 
-        // Operators with possible two-character forms
-        case '!': addToken(match('=') ? TokenType::BANG_EQUAL : TokenType::BANG); break;
-        case '=': addToken(match('=') ? TokenType::EQUAL_EQUAL : TokenType::EQUAL); break;
-        case '<': addToken(match('=') ? TokenType::LESS_EQUAL : TokenType::LESS); break;
-        case '>': addToken(match('=') ? TokenType::GREATER_EQUAL : TokenType::GREATER); break;
-
-        case '/': 
+        // Slash could start comment or be division operator
+        case '/':
             if (match('/')) {
-                // Single-line comment: ignore until newline
+                // single-line comment: skip until newline
                 while (peek() != '\n' && !isAtEnd()) advance();
             }
             else if (match('*')) {
-                // Multi-line or nested comment
+                // multi-line (possibly nested) comment
                 blockComments();
             }
             else {
+                // plain slash token
                 addToken(TokenType::SLASH);
             }
             break;
 
+        // Start of string literal
         case '"':
-            string(); // String literal
+            string();
             break;
 
-        // Whitespace (ignored)
+        // Whitespace is ignored
         case ' ':
         case '\r':
         case '\t':
             break;
 
-        // Newline: track line number
+        // Newline: increment line counter for error reporting
         case '\n':
             ++line;
             break;
 
         default:
-            // Number literals
+            // Digits start numeric literal
             if (isDigit(c)) {
                 number();
             }
-            // Identifiers or keywords
+            // Letters or underscore start identifier/keyword
             else if (isAlpha(c)) {
                 identifier();
             }
-            // Unknown character
+            // Anything else is unrecognized
             else {
                 Flint::error(line, "Unexpected character.");
             }
@@ -152,36 +168,36 @@ void Scanner::scanToken()
 }
 
 // ---------------------------------------------------------------------------
-// Returns true if we're at the end of the input string.
+// Returns true if we've consumed all characters of the source.
 // ---------------------------------------------------------------------------
-bool Scanner::isAtEnd()
+bool Scanner::isAtEnd() const
 {
     return current >= source.length();
 }
 
 // ---------------------------------------------------------------------------
-// Character classification helpers
+// Character classification helpers.
 // ---------------------------------------------------------------------------
-bool Scanner::isDigit(char c)
+bool Scanner::isDigit(char c) const
 {
     return c >= '0' && c <= '9';
 }
 
-bool Scanner::isAlpha(char c)
+bool Scanner::isAlpha(char c) const
 {
     return (c >= 'a' && c <= 'z') ||
            (c >= 'A' && c <= 'Z') ||
            c == '_';
 }
 
-bool Scanner::isAlphaNumeric(char c)
+bool Scanner::isAlphaNumeric(char c) const
 {
     return isAlpha(c) || isDigit(c);
 }
 
 // ---------------------------------------------------------------------------
-// Matches a character only if it matches the expected one.
-// Advances the cursor if matched.
+// Conditionally consumes the next character if it matches `expected`.
+// Returns true and advances if so; otherwise returns false.
 // ---------------------------------------------------------------------------
 bool Scanner::match(char expected)
 {
@@ -193,25 +209,24 @@ bool Scanner::match(char expected)
 }
 
 // ---------------------------------------------------------------------------
-// Returns the current character without consuming it.
+// Peeks at the current character without consuming it.
 // ---------------------------------------------------------------------------
-char Scanner::peek()
+char Scanner::peek() const
 {
-    if (isAtEnd()) return '\0';
-    return source.at(current);
+    return isAtEnd() ? '\0' : source.at(current);
 }
 
 // ---------------------------------------------------------------------------
-// Returns the next character (lookahead) without advancing.
+// Peeks one character ahead without consuming it.
 // ---------------------------------------------------------------------------
-char Scanner::peekNext()
+char Scanner::peekNext() const
 {
-    if (current + 1 >= source.length()) return '\0';
-    return source.at(current + 1);
+    return (current + 1 >= source.length()) ? '\0' : source.at(current + 1);
 }
 
 // ---------------------------------------------------------------------------
-// Parses and stores a string literal, handling escape sequences.
+// Parses and stores a string literal, handling escape sequences and errors.
+// Stops at the closing '"' or reports unterminated-string.
 // ---------------------------------------------------------------------------
 void Scanner::string()
 {
@@ -221,43 +236,48 @@ void Scanner::string()
     {
         char c = advance();
 
-        if (c == '"') break; // Closing quote
+        if (c == '"') break;  // closing quote found
 
         if (c == '\\') {
+            // handle escape
             if (isAtEnd()) break;
             char next = advance();
-
             switch (next) {
                 case 'n':  value += '\n'; break;
                 case 't':  value += '\t'; break;
                 case 'r':  value += '\r'; break;
-                case '"':  value += '"'; break;
+                case '"':  value += '"';  break;
                 case '\\': value += '\\'; break;
                 default:
-                    Flint::error(line, std::string("Invalid escape character: \\") + next);
+                    Flint::error(line, std::string("Invalid escape: \\") + next);
                     return;
             }
         }
         else if (c == '\n') {
-            line++;
-            Flint::error(line, "Unterminated string (unexpected newline).");
+            // newline inside string is illegal
+            ++line;
+            Flint::error(line, "Unterminated string (newline encountered).");
             return;
         }
         else {
-            value += c;
+            value += c;  // normal character
         }
     }
 
+    // if we exited without closing quote, report error
     if (isAtEnd() && source[current - 1] != '"') {
         Flint::error(line, "Unterminated string.");
         return;
     }
 
+    // emit the STRING token with its extracted value
     addToken(TokenType::STRING, value);
 }
 
 // ---------------------------------------------------------------------------
-// Handles nested multi-line comments: /* ... */ (including nested ones)
+// Handles nested multi-line comments /* ... */ at any depth.
+// Increments `nestedLevels` for each /* and decrements for each */.
+// Tracks line numbers inside comments.
 // ---------------------------------------------------------------------------
 void Scanner::blockComments()
 {
@@ -273,11 +293,8 @@ void Scanner::blockComments()
             advance(); advance();
             nestedLevels--;
         }
-        else if (peek() == '\n') {
-            line++;
-            advance();
-        }
         else {
+            if (peek() == '\n') ++line;
             advance();
         }
     }
@@ -288,23 +305,28 @@ void Scanner::blockComments()
 }
 
 // ---------------------------------------------------------------------------
-// Parses numeric literals: integers and floating-point values.
+// Parses numeric literals, including optional fractional part.
+// Consumes all digits, then '.' and more digits if present.
 // ---------------------------------------------------------------------------
 void Scanner::number()
 {
+    // consume leading digits
     while (isDigit(peek())) advance();
 
+    // optional fractional part
     if (peek() == '.' && isDigit(peekNext())) {
-        advance(); // consume '.'
+        advance();  // consume '.'
         while (isDigit(peek())) advance();
     }
 
-    std::string numberText = source.substr(start, current - start);
-    addToken(TokenType::NUMBER, std::stod(numberText));
+    // convert text to double
+    std::string text = source.substr(start, current - start);
+    addToken(TokenType::NUMBER, std::stod(text));
 }
 
 // ---------------------------------------------------------------------------
-// Parses an identifier (or keyword if matched in the keyword map).
+// Parses an identifier or checks if it's a reserved keyword.
+// Consumes alphanumeric characters and underscores.
 // ---------------------------------------------------------------------------
 void Scanner::identifier()
 {
@@ -312,13 +334,17 @@ void Scanner::identifier()
 
     std::string text = source.substr(start, current - start);
     auto it = keywords.find(text);
-    TokenType type = (it != keywords.end()) ? it->second : TokenType::IDENTIFIER;
+
+    // if it's a keyword, use its type; otherwise IDENTIFIER
+    TokenType type = (it != keywords.end())
+                   ? it->second
+                   : TokenType::IDENTIFIER;
 
     addToken(type);
 }
 
 // ---------------------------------------------------------------------------
-// Advances by one character and returns it.
+// Advances the cursor by one and returns the consumed character.
 // ---------------------------------------------------------------------------
 char Scanner::advance()
 {
@@ -327,7 +353,7 @@ char Scanner::advance()
 }
 
 // ---------------------------------------------------------------------------
-// Adds a token without a literal value (e.g., operators).
+// Adds a token with no literal value (e.g., punctuation, operators).
 // ---------------------------------------------------------------------------
 void Scanner::addToken(TokenType type)
 {
@@ -335,10 +361,11 @@ void Scanner::addToken(TokenType type)
 }
 
 // ---------------------------------------------------------------------------
-// Adds a token with optional literal value.
+// Adds a token with an associated literal value (e.g., number, string).
+// Extracts the lexeme text and stores line number.
 // ---------------------------------------------------------------------------
 void Scanner::addToken(TokenType type, LiteralValue literal)
 {
-    std::string text = source.substr(start, current - start);
-    tokens.push_back(Token(type, text, literal, line));
+    std::string lexeme = source.substr(start, current - start);
+    tokens.push_back(Token(type, lexeme, literal, line));
 }

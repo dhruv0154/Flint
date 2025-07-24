@@ -26,9 +26,9 @@ public:
 
     // ─────────────────────────────────────────────────────────────
     // Constructor
-    // @param token: Token causing the error (e.g., operator, identifier)
-    // @param message: Human-readable explanation of what went wrong
+    // @param token   : Token causing the error (e.g., operator, identifier)
+    // @param message : Human-readable explanation of what went wrong
     // ─────────────────────────────────────────────────────────────
-    RuntimeError(Token token, const std::string& messsage)
-        : std::runtime_error(messsage), token(token) {}
+    RuntimeError(Token token, const std::string& message)
+        : std::runtime_error(message), token(token) {}
 };

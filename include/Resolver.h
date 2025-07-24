@@ -8,66 +8,67 @@
 
 class Interpreter;
 
+// Responsible for performing static resolution of variable scopes and bindings
 class Resolver
 {
 private:
-    std::shared_ptr<Interpreter> interpreter;
-    std::vector<std::unordered_map<std::string, bool>> scopes;
-    FunctionType currentFunction;
-    ClassType currentClass;
+    std::shared_ptr<Interpreter> interpreter; // Reference to the interpreter to inform about resolved variables
+    std::vector<std::unordered_map<std::string, bool>> scopes; // Stack of scopes for variables, each map holds variable declarations in the current scope
+    FunctionType currentFunction; // Tracks the current function type to detect invalid returns or recursion
+    ClassType currentClass; // Tracks the current class context to validate 'this' and methods
+
 public:
 
-    void operator()(const WhileStmt& stmt);
+    // === Statement Resolvers ===
 
-    void operator()(const FunctionStmt& stmt);
+    void operator()(const WhileStmt& stmt);                    // Resolves loop condition and body
+    void operator()(const FunctionStmt& stmt);                 // Resolves function declarations and their bodies
+    void operator()(const ReturnStmt& stmt);                   // Validates and resolves return expressions
+    void operator()(const IfStmt& stmt);                       // Resolves condition, then, and else blocks
+    void operator()(const BreakStmt& stmt);                    // Validates break context (e.g., inside loops)
+    void operator()(const ContinueStmt& stmt);                 // Validates continue context
+    void operator()(const TryCatchContinueStmt& stmt);         // Resolves try-catch with custom "continue" recovery
 
-    void operator()(const ReturnStmt& stmt);
+    void operator()(const ExpressionStmt& exprStatement);      // Resolves simple expression statements
+    void operator()(const LetStmt& letStatement);              // Handles variable declaration and optional initializer
+    void operator()(const BlockStmt& blockStatement);          // Resolves a scoped block of statements
+    void operator()(const ClassStmt& classStatement);          // Resolves class declarations and method scopes
 
-    void operator()(const IfStmt& stmt);
+    // === Expression Resolvers ===
 
-    void operator()(const BreakStmt& stmt);
+    void operator()(const Binary& expr);                       // Resolves binary operators
+    void operator()(const Logical& expr);                      // Resolves logical operations (AND/OR)
+    void operator()(const Conditional& expr);                  // Resolves ternary (?:) conditions
+    void operator()(const Unary& expr);                        // Resolves unary operations
+    void operator()(const Literal& expr);                      // Literals (no resolution needed)
+    void operator()(const Grouping& expr);                     // Resolves grouped sub-expressions
+    void operator()(const Variable& expr, ExprPtr exprPtr);    // Resolves usage of a variable
+    void operator()(const Assignment& expr, ExprPtr exprPtr);  // Resolves assignment targets and values
+    void operator()(const Lambda& expr);                       // Resolves lambda (anonymous) function expression
+    void operator()(const Call& expr);                         // Resolves function/method calls
+    void operator()(const Get& expr);                          // Resolves property access (obj.prop)
+    void operator()(const Set& expr);                          // Resolves property assignments (obj.prop = value)
+    void operator()(const This& expr, ExprPtr exprPtr);        // Resolves 'this' keyword inside classes
 
-    void operator()(const ContinueStmt& stmt);
+    // === Entry Points for Resolution ===
 
-    void operator()(const TryCatchContinueStmt& stmt);
+    void resolve(std::vector<std::shared_ptr<Statement>> statements); // Entry for resolving a list of statements
+    void resolve(std::shared_ptr<Statement> stmt);                    // Entry for resolving a single statement
+    void resolve(ExprPtr expr);                                       // Entry for resolving a single expression
+    void resolveLocal(ExprPtr expr, Token name);                      // Resolve a variable in the current/local scope
+    void resolveFunction(const FunctionStmt &stmt, FunctionType type);// Handle function-specific resolution context
 
-    // Handles standalone expressions (e.g., `a + b;`)
-    void operator()(const ExpressionStmt& exprStatement);
+    // === Scope Management ===
 
-    // Handles variable declarations (`let x = 42;`)
-    void operator()(const LetStmt& letStatement);
+    void beginScope();  // Begins a new local scope
+    void endScope();    // Ends the current local scope
 
-    // Handles block statments ({ 'Collection of statements' })
-    void operator()(const BlockStmt& blockStatement);
-    void operator()(const ClassStmt& classStatement);
+    void declare(Token name); // Declares a variable (name only, before value)
+    void define(Token name);  // Defines a variable (after its value has been resolved)
 
-    void operator()(const Binary& expr);
-    void operator()(const Logical& expr);
-    void operator()(const Conditional& expr);
-    void operator()(const Unary& expr);
-    void operator()(const Literal& expr);
-    void operator()(const Grouping& expr);
-    void operator()(const Variable& expr, ExprPtr exprPtr);
-    void operator()(const Assignment& expr, ExprPtr exprPtr);
-    void operator()(const Lambda& expr);
-    void operator()(const Call& expr);
-    void operator()(const Get& expr);
-    void operator()(const Set& expr);
-    void operator()(const This& expr, ExprPtr exprPtr);
-
-    void resolve(std::vector<std::shared_ptr<Statement>> statements);
-    void resolve(std::shared_ptr<Statement> stmt);
-    void resolve(ExprPtr expr);
-    void resolveLocal(ExprPtr expr, Token name);
-    void resolveFunction(const FunctionStmt &stmt, FunctionType type);
-
-    void beginScope();
-    void endScope();
-
-    void declare(Token name);
-    void define(Token name);
+    // === Constructor ===
 
     Resolver(std::shared_ptr<Interpreter> interpreter) 
         : interpreter(interpreter), currentFunction(FunctionType::NONE), 
-        currentClass(ClassType::NONE) {}
+          currentClass(ClassType::NONE) {}
 };

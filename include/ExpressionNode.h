@@ -3,27 +3,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  ExpressionNode System (AST Nodes for Expressions)
 // ─────────────────────────────────────────────────────────────────────────────
-//  This file defines the core expression types in the Flint language.
-//
-//  Expressions include literals, binary ops, conditionals, variables, etc.
-//  Each node is represented by a struct and wrapped in a std::variant.
-//  The `ExprPtr` alias wraps nodes with std::shared_ptr for polymorphic access.
-//
-//  Example Expression:
-//      let x = (true ? 10 + 2 : 5);
-//      Would be represented as nested Conditional, Binary, Literal, etc.
+//  Defines every kind of expression in Flint.  Parsers build these nodes,
+//  and the Interpreter walks them to evaluate code.
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include <memory>
 #include <vector>
 #include <string>
 #include <variant>
-#include <any>
-#include "Scanner/Token.h"
-#include "Scanner/Value.h"
+#include "Scanner/Token.h"      // Token type for operators, identifiers, literals
+#include "Scanner/Value.h"      // LiteralValue variant holding runtime values
 
 // ─────────────────────────────────────────────────────────────
-// Forward declarations of statement structs
+//  Forward declarations of all statement types
 // ─────────────────────────────────────────────────────────────
 struct ExpressionStmt;
 struct FunctionStmt;
@@ -38,11 +30,10 @@ struct BlockStmt;
 struct ClassStmt;
 
 // ─────────────────────────────────────────────────────────────
-// Statement Variant
+//  Statement
 // ─────────────────────────────────────────────────────────────
-// Acts as the base type for all statements in the AST.
-// Used in: Parser output and Interpreter execution
-// ─────────────────────────────────────────────────────────────
+//  Variant over each statement struct.  Produced by the Parser,
+//  consumed by the Interpreter (via std::visit).
 using Statement = std::variant<
     ExpressionStmt,
     FunctionStmt, 
@@ -58,7 +49,7 @@ using Statement = std::variant<
 >;
 
 // ─────────────────────────────────────────────────────────────
-// Forward declarations for all supported expression types
+//  Forward declarations of all expression structs
 // ─────────────────────────────────────────────────────────────
 struct Binary;
 struct Logical;
@@ -75,8 +66,10 @@ struct Set;
 struct This;
 
 // ─────────────────────────────────────────────────────────────
-// ExpressionNode variant: acts like a base class for AST nodes
+//  ExpressionNode
 // ─────────────────────────────────────────────────────────────
+//  Variant over each expression type.  An ExprPtr points to one
+//  of these by wrapping in shared_ptr for polymorphic storage.
 using ExpressionNode = std::variant<
     Binary,
     Call,
@@ -93,137 +86,155 @@ using ExpressionNode = std::variant<
     This
 >;
 
-// Smart pointer for expression nodes
+// ─────────────────────────────────────────────────────────────
+//  ExprPtr
+// ─────────────────────────────────────────────────────────────
+//  Shared pointer to an ExpressionNode, for nesting and ownership.
 using ExprPtr = std::shared_ptr<ExpressionNode>;
 
 // ─────────────────────────────────────────────────────────────
-// Binary: (left op right)
+//  Binary: left op right
 // ─────────────────────────────────────────────────────────────
-struct Binary 
-{
-    ExprPtr left;   // Left-hand side expression
-    Token op;       // Operator token (e.g., +, -, *, ==)
-    ExprPtr right;  // Right-hand side expression
+struct Binary {
+    ExprPtr left;   // left operand
+    Token    op;    // operator token (e.g. '+', '==')
+    ExprPtr right;  // right operand
 
     Binary(ExprPtr left, Token op, ExprPtr right)
         : left(std::move(left)), op(std::move(op)), right(std::move(right)) {}
 };
 
-struct Logical
-{
-    ExprPtr left;
-    Token op;
-    ExprPtr right;
+// ─────────────────────────────────────────────────────────────
+//  Logical: left (and/or) right
+// ─────────────────────────────────────────────────────────────
+struct Logical {
+    ExprPtr left;   // first operand
+    Token    op;    // 'and' or 'or'
+    ExprPtr right;  // second operand
 
     Logical(ExprPtr left, Token op, ExprPtr right)
-            : left(std::move(left)), op(std::move(op)), right(std::move(right)) {}
+        : left(std::move(left)), op(std::move(op)), right(std::move(right)) {}
 };
 
 // ─────────────────────────────────────────────────────────────
-// Conditional: (condition ? left : right)
+//  Conditional: condition ? thenExpr : elseExpr
 // ─────────────────────────────────────────────────────────────
-struct Conditional 
-{
-    ExprPtr condition; // Ternary condition (before ?)
-    ExprPtr left;      // Expression if true
-    ExprPtr right;     // Expression if false
+struct Conditional {
+    ExprPtr condition;  // expression before '?'
+    ExprPtr left;       // if-true branch
+    ExprPtr right;      // if-false branch
 
     Conditional(ExprPtr condition, ExprPtr left, ExprPtr right)
-        : condition(std::move(condition)), left(std::move(left)), right(std::move(right)) {}
-};
-
-struct Call
-{
-    ExprPtr callee;
-    Token paren;
-    std::vector<ExprPtr> arguments;
-
-    Call(ExprPtr callee, Token paren, std::vector<ExprPtr> arguments) :
-        callee(std::move(callee)), paren(paren), arguments(arguments) {}
+        : condition(std::move(condition))
+        , left(std::move(left))
+        , right(std::move(right)) {}
 };
 
 // ─────────────────────────────────────────────────────────────
-// Unary: (op right)
+//  Call: function or class constructor invocation
 // ─────────────────────────────────────────────────────────────
-struct Unary 
-{
-    Token op;       // Unary operator token (e.g., !, -)
-    ExprPtr right;  // Operand
+struct Call {
+    ExprPtr               callee;     // expression evaluating to callable
+    Token                 paren;      // closing parenthesis token (for errors)
+    std::vector<ExprPtr>  arguments;  // zero or more argument expressions
+
+    Call(ExprPtr callee, Token paren, std::vector<ExprPtr> arguments)
+        : callee(std::move(callee)), paren(paren), arguments(std::move(arguments)) {}
+};
+
+// ─────────────────────────────────────────────────────────────
+//  Unary: op right
+// ─────────────────────────────────────────────────────────────
+struct Unary {
+    Token    op;     // operator token (e.g. '!', '-')
+    ExprPtr  right;  // operand expression
 
     Unary(Token op, ExprPtr right)
         : op(std::move(op)), right(std::move(right)) {}
 };
 
 // ─────────────────────────────────────────────────────────────
-// Literal: (e.g., 42, "hello", true)
+//  Literal: number, string, bool, or nil
 // ─────────────────────────────────────────────────────────────
-struct Literal 
-{
-    LiteralValue value;  // Can be string, number, bool, etc.
+struct Literal {
+    LiteralValue value;  // holds actual runtime value
 
     Literal(LiteralValue value)
         : value(std::move(value)) {}
 };
 
 // ─────────────────────────────────────────────────────────────
-// Grouping: ((expr))
+//  Grouping: '(' expression ')'
 // ─────────────────────────────────────────────────────────────
-struct Grouping 
-{
-    ExprPtr expression;  // Nested expression in parentheses
+struct Grouping {
+    ExprPtr expression;  // inner expression
 
     Grouping(ExprPtr expression)
         : expression(std::move(expression)) {}
 };
 
 // ─────────────────────────────────────────────────────────────
-// Variable: (identifier usage)
+//  Variable: usage of identifier
 // ─────────────────────────────────────────────────────────────
-struct Variable
-{
-    Token name;  // Token representing the variable name
+struct Variable {
+    Token name;  // identifier token
 
     Variable(Token name)
-        : name(name) {}
+        : name(std::move(name)) {}
 };
 
-struct Assignment
-{
-    Token name;
-    ExprPtr value;
+// ─────────────────────────────────────────────────────────────
+//  Assignment: name = value
+// ─────────────────────────────────────────────────────────────
+struct Assignment {
+    Token   name;   // variable name token
+    ExprPtr value;  // expression to assign
 
     Assignment(Token name, ExprPtr value)
-        : name(name), value(std::move(value)) {}
+        : name(std::move(name)), value(std::move(value)) {}
 };
 
-struct Lambda
-{
-    std::shared_ptr<FunctionStmt> function;
+// ─────────────────────────────────────────────────────────────
+//  Lambda: anonymous function literal
+// ─────────────────────────────────────────────────────────────
+struct Lambda {
+    std::shared_ptr<FunctionStmt> function;  // holds parameters and body
+
     Lambda(std::shared_ptr<FunctionStmt> function)
         : function(std::move(function)) {}
 };
 
-struct Get
-{
-    ExprPtr object;
-    Token name;
+// ─────────────────────────────────────────────────────────────
+//  Get: property access (object.name)
+// ─────────────────────────────────────────────────────────────
+struct Get {
+    ExprPtr object;  // expression evaluating to an instance
+    Token   name;    // property name token
 
-    Get(ExprPtr object, Token name) : object(std::move(object)), name(name) {}
+    Get(ExprPtr object, Token name)
+        : object(std::move(object)), name(std::move(name)) {}
 };
 
-struct Set
-{
-    ExprPtr object;
-    Token name;
-    ExprPtr value;
+// ─────────────────────────────────────────────────────────────
+//  Set: property assignment (object.name = value)
+// ─────────────────────────────────────────────────────────────
+struct Set {
+    ExprPtr object;  // target instance expression
+    Token   name;    // property name token
+    ExprPtr value;   // value expression
 
-    Set(ExprPtr object, Token name, ExprPtr value) : object(std::move(object)), 
-        name(name), value(std::move(value)) {}
+    Set(ExprPtr object, Token name, ExprPtr value)
+        : object(std::move(object))
+        , name(std::move(name))
+        , value(std::move(value)) {}
 };
 
-struct This
-{
-    Token keyword;
+// ─────────────────────────────────────────────────────────────
+//  This: usage of 'this' keyword inside class methods
+// ─────────────────────────────────────────────────────────────
+struct This {
+    Token keyword;  // 'this' token, used for errors and binding
 
-    This(Token keyword) : keyword(keyword) {}
+    This(Token keyword)
+        : keyword(std::move(keyword)) {}
 };

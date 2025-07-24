@@ -1,18 +1,9 @@
-class Cake {
-  class taste()
-  {
-    print("5");
-  }
-  init(flavor)
-  {
-    this.flavor = flavor;
-  }
-  taste() {
-    let adjective = "delicious";
-    print ("The " + this.flavor + " cake is " + adjective + "!");
+class Test {
+  value {
+    return 42;
   }
 }
 
-let cake = Cake("ABc");
-cake.taste(); // Prints "The German chocolate cake is delicious!".
-Cake.taste();
+let t = Test();
+print (t.value);    // 42
+print (t.value());  // RuntimeError: Can only call functions and classes

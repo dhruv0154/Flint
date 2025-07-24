@@ -12,8 +12,8 @@
 #include <iostream>              // Standard input/output
 #include <fstream>               // File stream handling
 #include <sstream>               // String stream utilities
-#include <stdexcept>             // Exception classes
-#include <vector>                // Token container
+#include <stdexcept>            // Exception classes
+#include <vector>               // Token container
 
 #include "Scanner/Scanner.h"     // Lexer/tokenizer
 #include "Flint/Flint.h"         // Flint runtime system
@@ -38,8 +38,8 @@ const std::shared_ptr<Interpreter> Flint::interpreter = std::make_shared<Interpr
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry Point: main()
 // ─────────────────────────────────────────────────────────────────────────────
-// Currently hardcoded to run `test.txt`. Can later accept `argc/argv` to
-// support file-based execution from the command line.
+// Runs Flint in either batch mode (file passed via CLI) or interactive mode.
+// You can later add CLI flags for debugging, profiling, etc.
 // ─────────────────────────────────────────────────────────────────────────────
 int main(int argc, char const *argv[])
 {
@@ -57,10 +57,9 @@ int main(int argc, char const *argv[])
 // ─────────────────────────────────────────────────────────────────────────────
 // Flint::runFile
 // ─────────────────────────────────────────────────────────────────────────────
-// Reads a script file into a string buffer, then invokes the scanner/parser/
-// interpreter pipeline. Terminates with distinct status codes on error:
-//   • 65 = compile-time (syntax) error
-//   • 70 = runtime error
+// Reads entire file contents into a string buffer before executing.
+// Terminates with different exit codes for compile/runtime errors.
+// Uses binary mode for consistent cross-platform file reading.
 // ─────────────────────────────────────────────────────────────────────────────
 void Flint::runFile(const std::string& path)
 {
@@ -72,22 +71,22 @@ void Flint::runFile(const std::string& path)
     }
 
     std::stringstream buffer;
-    buffer << file.rdbuf();
+    buffer << file.rdbuf(); // Read entire file into buffer
     std::string source = buffer.str();
 
     run(source);
 
-    if (hadError) exit(65);
-    if (hadRuntimeError) exit(70);
+    if (hadError) exit(65);          // Syntax error
+    if (hadRuntimeError) exit(70);   // Runtime error
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Flint::runPrompt
 // ─────────────────────────────────────────────────────────────────────────────
-// Launches a simple REPL (Read-Eval-Print Loop). Terminates on EOF.
-// After each line, resets the `hadError` flag so the REPL doesn't exit on error.
+// Interactive REPL loop. Evaluates single lines and prints results immediately.
+// - You might consider persisting interpreter state across lines.
+// - Currently requires explicit `print` statements.
 // ─────────────────────────────────────────────────────────────────────────────
-// TODO: make expression print output without using print explicitly
 void Flint::runPrompt()
 {
     std::string line;
@@ -99,20 +98,21 @@ void Flint::runPrompt()
             break;
 
         run(line);
-        hadError = false;
+        hadError = false;         // Reset between REPL runs
         hadRuntimeError = false;
     }
 }
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Flint::run
 // ─────────────────────────────────────────────────────────────────────────────
-// The main pipeline that takes raw source code and processes it:
-//   1. Tokenize using the Scanner
-//   2. Parse into AST using the Parser
-//   3. Interpret the parsed statements using the Interpreter
-// Skips execution if a parse error occurred (early return).
+// Executes a string of Flint source code:
+//   1. Lexing (Scanner) → Token stream
+//   2. Parsing (Parser) → AST
+//   3. Resolving → Variable scope resolution
+//   4. Interpreting (Interpreter) → Execute program
+//
+// Short-circuits if a compile-time error is detected at any step.
 // ─────────────────────────────────────────────────────────────────────────────
 void Flint::run(const std::string& source) 
 {
@@ -120,32 +120,32 @@ void Flint::run(const std::string& source)
     auto tokens  = scanner->scanTokens();
     
     auto parser  = std::make_unique<Parser>(tokens);
-
     auto statements = parser->parse();
 
-    if(hadError) return;
+    if (hadError) return; // Stop if syntax error occurred
 
     auto resolver = std::make_unique<Resolver>(interpreter);
-    resolver -> resolve(statements);
-    if(hadError) return;
-    interpreter->interpret(statements);
+    resolver->resolve(statements); // Perform static scope resolution
+
+    if (hadError) return;
+
+    interpreter->interpret(statements); // Finally, run the program
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Error Reporting Utilities
 // ─────────────────────────────────────────────────────────────────────────────
-// These are called from various components (e.g., scanner, parser, runtime)
-// to signal different types of failures. Each sets flags that control
-// termination behavior or REPL continuation.
+// These report errors at either compile-time or runtime.
+// They are called by the scanner, parser, resolver, and interpreter layers.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Compile-time error (by line number)
+// Emit error by line number (e.g., during scanning)
 void Flint::error(int line, const std::string& message)
 {
     report(line, "", message);
 }
 
-// Compile-time error (with token context)
+// Emit error at a specific token (e.g., during parsing/resolution)
 void Flint::error(Token token, const std::string& message)
 {
     if (token.type == TokenType::END_OF_FILE)
@@ -154,14 +154,14 @@ void Flint::error(Token token, const std::string& message)
         report(token.line, "at '" + token.lexeme + "'", message);
 }
 
-// Runtime error (with thrown RuntimeError)
+// Log runtime error (thrown by Interpreter or built-in functions)
 void Flint::runtimeError(RuntimeError error)
 {
     std::cerr << "[line " << error.token.line << "] Runtime error: " << error.what() << std::endl;
     hadRuntimeError = true;
 }
 
-// Shared error reporter (used internally)
+// Shared internal error reporting mechanism
 void Flint::report(int line, const std::string& where, const std::string& message)
 {
     std::cerr << "[line " << line << "] Error " << where << ": " << message << std::endl;

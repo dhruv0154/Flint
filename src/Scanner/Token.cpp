@@ -2,58 +2,62 @@
 // Implements the `toString()` method for the Token class.
 // This function provides a human-readable representation of a token,
 // useful for debugging the lexer or AST. Format:
-//   TokenType LEXEME LINE_LITERAL
-// Example:
-//   EQUAL = 5 42
+//   LEXEME LINE LITERAL
+// Example output:
+//   "=" 5 "true"
 // ---------------------------------------------------------------------------
 
 #include "Scanner/Token.h"
-#include <sstream>                  // For building the output string
-#include <iomanip>                  // For controlling float precision
+#include <sstream>  // For building the output string
+#include <iomanip>  // For controlling float precision
 
-// ---------------------------------------------------------------------------
-// Returns a string representation of the token, including:
-// - The token type (e.g., IDENTIFIER, EQUAL)
-// - The original source lexeme (e.g., "x", "=", "true")
-// - The line number where the token appeared
-// - The resolved literal value (if any)
-// ---------------------------------------------------------------------------
 std::string Token::toString() const
 {
     std::stringstream ss;
 
-    // Use magic_enum to get the enum name as string (e.g., "EQUAL")
-    ss << lexeme << " "
-       << line << " ";
+    // 1) Print the raw lexeme (the exact text from source)
+    ss << lexeme << " ";
 
-    // Format literal using std::visit for the variant type
+    // 2) Print the line number where this token was found
+    ss << line << " ";
+
+    // 3) Format the literal variant into a string
+    //    We use std::visit to handle each possible type in the union.
     auto formatLiteral = [](auto&& val) -> std::string {
         using T = std::decay_t<decltype(val)>;
 
+        // String literals: wrap in quotes
         if constexpr (std::is_same_v<T, std::string>) {
             return "\"" + val + "\"";
-        } 
+        }
+        // Floating-point numbers: fixed notation with two decimals
         else if constexpr (std::is_same_v<T, double>) {
             std::ostringstream r;
             r << std::fixed << std::setprecision(2) << val;
             return r.str();
-        } 
+        }
+        // Integers: plain decimal
         else if constexpr (std::is_same_v<T, int>) {
             return std::to_string(val);
-        } 
+        }
+        // Booleans: "true" or "false"
         else if constexpr (std::is_same_v<T, bool>) {
             return val ? "true" : "false";
-        } 
-        else if constexpr (std::is_same_v<T, std::nullptr_t> || std::is_same_v<T, std::monostate>) {
+        }
+        // nullptr_t and monostate: represent absence of value
+        else if constexpr (std::is_same_v<T, std::nullptr_t> ||
+                           std::is_same_v<T, std::monostate>) {
             return "nothing";
-        } 
+        }
+        // Other types should not occur here; fallback safely
         else {
-            return "unknown";  // Fallback (should not happen in practice)
+            return "unknown";
         }
     };
 
-    // Apply formatter to the variant literal
+    // 4) Append the formatted literal to the output
     ss << std::visit(formatLiteral, literal);
 
+    // 5) Return the assembled string
     return ss.str();
 }

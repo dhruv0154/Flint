@@ -1,264 +1,311 @@
-#include "Parser\Parser.h"
-#include "Flint\Flint.h"
+#include "Parser/Parser.h"
+#include "Flint/Flint.h"
 #include "Stmt.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Top-level entry point to parse a list of statements (like a full program)
-// Keeps consuming statements until EOF
+// Entry point: parse a sequence of statements until EOF.
+// Returns a vector of Statement AST nodes for interpretation.
 // ─────────────────────────────────────────────────────────────────────────────
 std::vector<std::shared_ptr<Statement>> Parser::parse()
 {
     std::vector<std::shared_ptr<Statement>> statements;
-
-    while (!isAtEnd())
+    // Keep consuming top‑level declarations/statements until we hit END_OF_FILE
+    while (!isAtEnd()) {
         statements.push_back(declareStatement());
-
+    }
     return statements;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses either a variable declaration or a general statement.
-// Uses try-catch to recover from syntax errors and continue parsing.
+// Top‑level “declaration or statement” parser.
+// Distinguishes class/func/let from other statements.
+// Uses exception-based error recovery to skip bad tokens.
 // ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::declareStatement()
 {
-    try
-    {
-        if (match({ TokenType::CLASS })) return parseClassDeclaration();
-        if (match({ TokenType::FUNC })) return parseFuncDeclaration("function");
-        if (match({ TokenType::LET })) 
-        {
-            if(check(TokenType::IDENTIFIER))
-                return parseVarDeclaration();
-        }
+    try {
+        if (match({ TokenType::CLASS }))
+            return parseClassDeclaration();
+        if (match({ TokenType::FUNC }))
+            return parseFuncDeclaration("function");
+        if (match({ TokenType::LET }) && check(TokenType::IDENTIFIER))
+            return parseVarDeclaration();
+        // Fallback: parse as a normal statement
         return parseStatement();
-    }
-    catch (ParseError error)
-    {
-        synchronize(); // Skips to a safe place
+    } catch (ParseError error) {
+        // On syntax error, skip tokens until next safe point
+        synchronize();
         return nullptr;
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// class Foo { ... }  
+// Parse class name, then member declarations until '}'.
+// Collects instance vs. static methods separately.
+// ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::parseClassDeclaration()
 {
+    // Require an identifier for the class name
     Token name = consume(TokenType::IDENTIFIER, "Expected an identifier for class name.");
-    consume(TokenType::LEFT_BRACE, "Expected '{' at the start of class body.");
+    consume(TokenType::LEFT_BRACE,    "Expected '{' at the start of class body.");
 
     std::vector<std::shared_ptr<Statement>> instanceMethods;
     std::vector<std::shared_ptr<Statement>> classMethods;
-    while(!check(TokenType::RIGHT_BRACE) && !isAtEnd())
-    {
-        if(match({ TokenType::CLASS })) 
+
+    // Loop until we see the closing brace
+    while (!check(TokenType::RIGHT_BRACE) && !isAtEnd()) {
+        if (match({ TokenType::CLASS })) {
+            // static method
             classMethods.push_back(parseFuncDeclaration("method"));
-        else
+        } else {
+            // instance method
             instanceMethods.push_back(parseFuncDeclaration("method"));
+        }
     }
 
     consume(TokenType::RIGHT_BRACE, "Expected '}' at the end of class body.");
+    // Build a ClassStmt node with both method lists
     return makeStmt<ClassStmt>(name, instanceMethods, classMethods);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses variable declarations:
-//     let x = 3;
-//     let y;
+// let a = 1, b, c = foo();
+// Parses one or more comma‑separated declarations.
 // ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::parseVarDeclaration()
 {
     std::vector<std::pair<Token, ExprPtr>> declarations;
-    do {
-        Token name = consume(TokenType::IDENTIFIER, "Expect variable name.");
 
+    do {
+        // Name of the variable
+        Token name = consume(TokenType::IDENTIFIER, "Expect variable name.");
         ExprPtr initializer = nullptr;
+
+        // Optional initializer after '='
         if (match({ TokenType::EQUAL })) {
-            initializer = assignment(); // parse right-hand side
+            initializer = assignment();
         }
 
         declarations.emplace_back(name, initializer);
-    } while (match({ TokenType::COMMA })); // keep going until no more comma
+        // If there's a comma, continue parsing more var names
+    } while (match({ TokenType::COMMA }));
 
+    // Expect a semicolon to terminate the declaration
     consume(TokenType::SEMICOLON, "Expect ';' after variable declaration.");
-
     return makeStmt<LetStmt>(declarations);
 }
 
-std::shared_ptr<Statement> Parser::parseFuncDeclaration(std::string kind)
+// ─────────────────────────────────────────────────────────────────────────────
+// function foo(...) { ... }  
+// or a “getter” if no parens follow the name.
+// ─────────────────────────────────────────────────────────────────────────────
+std::shared_ptr<Statement> Parser::parseFuncDeclaration(std::string&& kind)
 {
     Token name = consume(TokenType::IDENTIFIER, "Expected " + kind + " name.");
-    
+
     std::vector<Token> params;
-   
-    consume(TokenType::LEFT_PAREN, "Expected '(' at the start of " + kind + " name.");
-    if(!check(TokenType::RIGHT_PAREN))
-    {
-        do
-        {
-            if(params.size() >= 255) error(peek(), "More than 255 arguments are not allowed.");
-            params.emplace_back(consume(TokenType::IDENTIFIER, "Expected parameter name."));
-        } while (match({ TokenType::COMMA }));
+    bool isGetter = false;
+
+    // If the next token isn't '(', treat this as a getter/setter
+    if (!check(TokenType::LEFT_PAREN)) {
+        isGetter = true;
+        kind = "getter/setter";
     }
-    consume(TokenType::RIGHT_PAREN, "Expected ')' after function parameters.");
 
-    consume(TokenType::LEFT_BRACE, "Expected '{' at the start of " + kind + " body.");
+    if (!isGetter) {
+        // Parse parameter list in parentheses
+        consume(TokenType::LEFT_PAREN, "Expected '(' after " + kind + " name.");
+        if (!check(TokenType::RIGHT_PAREN)) {
+            do {
+                if (params.size() >= 255)
+                    error(peek(), "Cannot have more than 255 parameters.");
+                params.emplace_back(
+                    consume(TokenType::IDENTIFIER, "Expected parameter name."));
+            } while (match({ TokenType::COMMA }));
+        }
+        consume(TokenType::RIGHT_PAREN, "Expected ')' after parameters.");
+    }
 
-    std::vector<std::shared_ptr<Statement>> body = blockStatement();
+    // Parse the function body as a block
+    consume(TokenType::LEFT_BRACE, "Expected '{' to start " + kind + " body.");
+    auto body = blockStatement();
 
-    return makeStmt<FunctionStmt>(name, params, body);
+    return makeStmt<FunctionStmt>(name, params, body, isGetter);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses any valid statement
+// Dispatch based on leading token: if/for/while/etc.
+// Otherwise parse as an expression statement.
 // ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::parseStatement()
 {
-    if (match({ TokenType::IF }))
-        return ifStatement();
-    else if (match({ TokenType::FOR }))
-        return forStatement();
-    else if (match({ TokenType::WHILE }))
-        return whileStatement();
-    else if (match({ TokenType::RETURN }))
-        return returnStatement();
-    else if (match({ TokenType::BREAK }))
-        return breakStatement();
-    else if (match({ TokenType::CONTINUE }))
-        return continueStatement();
-    else if (match({ TokenType::LEFT_BRACE })) 
+    if      (match({ TokenType::IF }))       return ifStatement();
+    else if (match({ TokenType::FOR }))      return forStatement();
+    else if (match({ TokenType::WHILE }))    return whileStatement();
+    else if (match({ TokenType::RETURN }))   return returnStatement();
+    else if (match({ TokenType::BREAK }))    return breakStatement();
+    else if (match({ TokenType::CONTINUE })) return continueStatement();
+    else if (match({ TokenType::LEFT_BRACE }))
         return makeStmt<BlockStmt>(blockStatement());
+
     return expressionStatement();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses a `if` statement
+// if (cond) thenBranch else elseBranch
 // ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::ifStatement()
 {
-    consume(TokenType::LEFT_PAREN, "Expected a '(' at the start of 'if' condition.");
+    consume(TokenType::LEFT_PAREN,  "Expected '(' after 'if'.");
     ExprPtr condition = expression();
-    consume(TokenType::RIGHT_PAREN, "Expected a ')' at the end of 'if' condition.");
+    consume(TokenType::RIGHT_PAREN, "Expected ')' after if condition.");
 
-    std::shared_ptr<Statement> thenBranch = parseStatement();
+    auto thenBranch = parseStatement();
     std::shared_ptr<Statement> elseBranch = nullptr;
-    if(match({ TokenType::ELSE })) elseBranch = parseStatement();
+    if (match({ TokenType::ELSE })) {
+        elseBranch = parseStatement();
+    }
 
     return makeStmt<IfStmt>(condition, thenBranch, elseBranch);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses a `while` statement
+// while (cond) body
 // ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::whileStatement()
 {
-    consume(TokenType::LEFT_PAREN, 
-        "Expected '(' at the start of while condition.");
-
+    consume(TokenType::LEFT_PAREN,  "Expected '(' after 'while'.");
     ExprPtr condition = expression();
-    
-    consume(TokenType::RIGHT_PAREN, 
-        "Expected ')' at the end of while condition.");
-    
-    std::shared_ptr<Statement> body = parseStatement();
+    consume(TokenType::RIGHT_PAREN, "Expected ')' after while condition.");
 
+    auto body = parseStatement();
     return makeStmt<WhileStmt>(condition, body);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// return expr? ;
+// ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::returnStatement()
 {
     Token keyword = previous();
-    ExprPtr val = nullptr;
-    if(!check(TokenType::SEMICOLON)) val = expression();
-    consume(TokenType::SEMICOLON, "Expected ';' at the end of return value.");
-    return makeStmt<ReturnStmt>(keyword, val);
+    ExprPtr value = nullptr;
+    if (!check(TokenType::SEMICOLON)) {
+        value = expression();
+    }
+    consume(TokenType::SEMICOLON, "Expected ';' after return value.");
+    return makeStmt<ReturnStmt>(keyword, value);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses a `break` statement
+// break ;
 // ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::breakStatement()
 {
     Token keyword = previous();
-    consume(TokenType::SEMICOLON, "Expected ';' at the end of break statement");
+    consume(TokenType::SEMICOLON, "Expected ';' after break.");
     return makeStmt<BreakStmt>(keyword);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// continue ;
+// ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::continueStatement()
 {
     Token keyword = previous();
-    consume(TokenType::SEMICOLON, "Expected ';' at the end of continue statement");
+    consume(TokenType::SEMICOLON, "Expected ';' after continue.");
     return makeStmt<ContinueStmt>(keyword);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses a `for` statement
+// for ( init; cond; incr ) body
+// Transforms into:
+// { init; while(cond) { body; incr; } }
+// Wraps body in TryCatchContinue to handle continue properly.
 // ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::forStatement()
 {
-    consume(TokenType::LEFT_PAREN, 
-        "Expected '(' at the start of for clauses.");
+    consume(TokenType::LEFT_PAREN,  "Expected '(' after 'for'.");
 
+    // Parse initializer (let, expression, or empty)
     std::shared_ptr<Statement> initializer;
-    if(match({ TokenType::SEMICOLON })) initializer = nullptr;
-    else if(match({ TokenType::LET })) initializer = parseVarDeclaration();
-    else initializer = expressionStatement();
+    if      (match({ TokenType::SEMICOLON })) initializer = nullptr;
+    else if (match({ TokenType::LET      })) initializer = parseVarDeclaration();
+    else                                       initializer = expressionStatement();
 
+    // Parse loop condition
     ExprPtr condition = nullptr;
-    if(!check(TokenType::SEMICOLON)) condition = expression();
-    consume(TokenType::SEMICOLON, "Expected ';' after for loop condition");
-
-    ExprPtr increment = nullptr;
-    if(!check(TokenType::RIGHT_PAREN)) increment = expression();
-    consume(TokenType::RIGHT_PAREN, "Expected ')' at the end of for clauses");
-
-    std::shared_ptr<Statement> body = parseStatement();
-
-    if(increment)
-    {
-        body = makeStmt<BlockStmt>(std::vector<std::shared_ptr<Statement>>
-            { makeStmt<TryCatchContinueStmt>(body), makeStmt<ExpressionStmt>(increment) });
+    if (!check(TokenType::SEMICOLON)) {
+        condition = expression();
     }
-    else
-    {
+    consume(TokenType::SEMICOLON, "Expected ';' after loop condition.");
+
+    // Parse increment expression
+    ExprPtr increment = nullptr;
+    if (!check(TokenType::RIGHT_PAREN)) {
+        increment = expression();
+    }
+    consume(TokenType::RIGHT_PAREN, "Expected ')' after for clauses.");
+
+    // Parse the loop body
+    auto body = parseStatement();
+
+    // If there's an increment, execute it after each iteration
+    if (increment) {
+        body = makeStmt<BlockStmt>(
+            std::vector<std::shared_ptr<Statement>>{
+                makeStmt<TryCatchContinueStmt>(body),
+                makeStmt<ExpressionStmt>(increment)
+            }
+        );
+    } else {
+        // Still catch continues so they don't skip the increment
         body = makeStmt<TryCatchContinueStmt>(body);
     }
 
-    if(!condition) condition = makeExpr<Literal>(true);
+    // Default condition to true if omitted
+    if (!condition) {
+        condition = makeExpr<Literal>(true);
+    }
+    // Build a while loop around the body
     body = makeStmt<WhileStmt>(condition, body);
 
-    if(initializer)
-    {
-        body = makeStmt<BlockStmt>(std::vector<std::shared_ptr<Statement>>
-            { initializer, body });
+    // If there was an initializer, wrap everything in a block
+    if (initializer) {
+        body = makeStmt<BlockStmt>(
+            std::vector<std::shared_ptr<Statement>>{ initializer, body }
+        );
     }
     return body;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses a block of statements (starts with '{' ends with '}')
+// Parses a sequence '{ ... }' into a vector of statements.
 // ─────────────────────────────────────────────────────────────────────────────
 std::vector<std::shared_ptr<Statement>> Parser::blockStatement()
 {
     std::vector<std::shared_ptr<Statement>> statements;
-
-    while (!check(TokenType::RIGHT_BRACE) && !isAtEnd()) 
-        statements.emplace_back(declareStatement());
-
-    consume(TokenType::RIGHT_BRACE, "Expect '}' at the end of block.");
+    // Keep parsing declarations/statements until '}'
+    while (!check(TokenType::RIGHT_BRACE) && !isAtEnd()) {
+        statements.push_back(declareStatement());
+    }
+    consume(TokenType::RIGHT_BRACE, "Expect '}' at end of block.");
     return statements;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses a generic expression statement (ends with `;`)
+// expr;
+// Parses a standalone expression followed by semicolon.
 // ─────────────────────────────────────────────────────────────────────────────
 std::shared_ptr<Statement> Parser::expressionStatement()
 {
     ExprPtr expr = expression();
-    consume(TokenType::SEMICOLON, "';' expected.");
+    consume(TokenType::SEMICOLON, "Expected ';' after expression.");
     return makeStmt<ExpressionStmt>(expr);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses full expressions starting with ternary conditionals
+// Full expression parser entry: handles comma operators.
 // ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::expression()
 {
@@ -266,17 +313,20 @@ ExprPtr Parser::expression()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses comma-separated expressions: a, b, c (evaluates all, returns rightmost)
+// comma: left , right → Binary with COMMA, allowing chaining.
+// Reports missing left operand error if leading comma.
 // ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::comma()
 {
     if (match({ TokenType::COMMA })) {
+        // Leading comma is a syntax error
         Token op = previous();
         error(op, "Missing left-hand operand before ','.");
         return assignment();
     }
 
-    auto expr = assignment();
+    ExprPtr expr = assignment();
+    // While we see commas, build a left‑folded Binary chain
     while (match({ TokenType::COMMA })) {
         Token op = previous();
         auto right = assignment();
@@ -285,41 +335,46 @@ ExprPtr Parser::comma()
     return expr;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// assignment: handles a = b or property sets.
+// Right-associative, so `a = b = c` binds as `a = (b = c)`.
+// ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::assignment()
 {
     ExprPtr expr = conditional();
 
-    if(match({ TokenType::EQUAL }))
-    {
+    if (match({ TokenType::EQUAL })) {
         Token equals = previous();
         ExprPtr value = assignment();
-        if(std::holds_alternative<Variable>(*expr))
-        {
+
+        // Simple variable assignment
+        if (std::holds_alternative<Variable>(*expr)) {
             Token name = std::get<Variable>(*expr).name;
             return makeExpr<Assignment>(name, value);
         }
-        else if(std::holds_alternative<Get>(*expr))
-        {
-            Get get = std::get<Get>(*expr);
+        // Property assignment: obj.prop = val
+        else if (std::holds_alternative<Get>(*expr)) {
+            auto get = std::get<Get>(*expr);
             return makeExpr<Set>(get.object, get.name, value);
         }
+
+        // Otherwise it's an invalid target
         throw error(equals, "Invalid assignment target.");
     }
+
     return expr;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses ternary conditionals: a ? b : c
-// Right-associative structure is enforced
+// conditional (ternary): a ? b : c, right-associative.
 // ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::conditional()
 {
     ExprPtr expr = logicalOr();
 
-    if (match({ TokenType::QUESTION_MARK }))
-    {
+    if (match({ TokenType::QUESTION_MARK })) {
         ExprPtr thenBranch = conditional();
-        consume(TokenType::COLON, "Expected ':' after then branch of ternary operator.");
+        consume(TokenType::COLON, "Expected ':' after then branch.");
         ExprPtr elseBranch = conditional();
         expr = makeExpr<Conditional>(expr, thenBranch, elseBranch);
     }
@@ -327,226 +382,228 @@ ExprPtr Parser::conditional()
     return expr;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// logicalOr: left || right ... short‑circuit at runtime.
+// ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::logicalOr()
 {
     ExprPtr expr = logicalAnd();
-
-    while (match({ TokenType::OR }))
-    {
+    while (match({ TokenType::OR })) {
         Token op = previous();
         ExprPtr right = logicalAnd();
         expr = makeExpr<Logical>(expr, op, right);
     }
-    
     return expr;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// logicalAnd: left && right ... short‑circuit at runtime.
+// ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::logicalAnd()
 {
     ExprPtr expr = equality();
-
-    while (match({ TokenType::AND }))
-    {
+    while (match({ TokenType::AND })) {
         Token op = previous();
         ExprPtr right = equality();
         expr = makeExpr<Logical>(expr, op, right);
     }
-    
     return expr;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses equality expressions: == and !=
+// equality: == and !=, left associative.
 // ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::equality()
 {
-    auto expr = comparison();
+    ExprPtr expr = comparison();
     while (match({ TokenType::EQUAL_EQUAL, TokenType::BANG_EQUAL })) {
         Token op = previous();
-        auto right = comparison();
+        ExprPtr right = comparison();
         expr = makeExpr<Binary>(expr, op, right);
     }
     return expr;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses comparisons: <, <=, >, >=
+// comparison: <, <=, >, >=
+// Provides an early-error if operator appears without left operand.
 // ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::comparison()
 {
-    if (match({ TokenType::LESS, TokenType::LESS_EQUAL, TokenType::GREATER, TokenType::GREATER_EQUAL })) {
+    // Leading comparison operator ⇒ error
+    if (match({ TokenType::LESS, TokenType::LESS_EQUAL,
+                TokenType::GREATER, TokenType::GREATER_EQUAL })) {
         Token op = previous();
         error(op, "Missing left-hand operand before '" + op.lexeme + "'.");
         return term();
     }
 
-    auto expr = term();
-    while (match({ TokenType::LESS, TokenType::LESS_EQUAL, TokenType::GREATER, TokenType::GREATER_EQUAL })) {
-        Token op = previous();
-        auto right = term();
+    ExprPtr expr = term();
+    while (match({ TokenType::LESS, TokenType::LESS_EQUAL,
+                   TokenType::GREATER, TokenType::GREATER_EQUAL })) {
+        Token op    = previous();
+        ExprPtr right = term();
         expr = makeExpr<Binary>(expr, op, right);
     }
     return expr;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses addition and subtraction: + and -
+// term: + and -  
 // ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::term()
 {
-    auto expr = factor();
+    ExprPtr expr = factor();
     while (match({ TokenType::PLUS, TokenType::MINUS })) {
-        Token op = previous();
-        auto right = factor();
+        Token op    = previous();
+        ExprPtr right = factor();
         expr = makeExpr<Binary>(expr, op, right);
     }
     return expr;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses multiplication, division, and modulo: *, /, %
+// factor: *, /, %  
 // ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::factor()
 {
+    // Early error if operator without left operand
     if (match({ TokenType::STAR, TokenType::SLASH, TokenType::MODULO })) {
         Token op = previous();
         error(op, "Missing left-hand operand before '" + op.lexeme + "'.");
         return unary();
     }
 
-    auto expr = unary();
+    ExprPtr expr = unary();
     while (match({ TokenType::STAR, TokenType::SLASH, TokenType::MODULO })) {
-        Token op = previous();
-        auto right = unary();
+        Token op    = previous();
+        ExprPtr right = unary();
         expr = makeExpr<Binary>(expr, op, right);
     }
     return expr;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses unary expressions: - and !
+// unary: '!' or '-' binds tighter than multiplication.
 // ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::unary()
 {
     if (match({ TokenType::BANG, TokenType::MINUS })) {
-        Token op = previous();
-        ExprPtr right = unary();
+        Token op    = previous();
+        ExprPtr right = unary();        // recursive to allow multiple '!!a'
         return makeExpr<Unary>(op, right);
     }
-
     return call();
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// call: parses function calls and property accesses:
+//   - foo(...)
+//   - obj.prop
+// Loops to allow chaining: foo().bar().baz()
+// ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::call()
 {
     ExprPtr expr = primary();
 
-    while (true) 
-    {
-        if (match({ TokenType::LEFT_PAREN })) 
-        {
+    while (true) {
+        if (match({ TokenType::LEFT_PAREN })) {
             expr = finishCall(expr);
         }
-        else if(match({ TokenType::DOT }))
-        {
-            Token name = consume(TokenType::IDENTIFIER, "Expected an identifier after '.'");
+        else if (match({ TokenType::DOT })) {
+            // property access: obj.identifier
+            Token name = consume(TokenType::IDENTIFIER,
+                                 "Expected property name after '.'.");
             expr = makeExpr<Get>(expr, name);
         }
-        else if (check(TokenType::STRING) || check(TokenType::NUMBER) || check(TokenType::IDENTIFIER)) 
-        {
-            // This means we're trying to call without a left paren
-            throw error(peek(), "Expected '(' after function name to start a call.");
-        } 
-        else 
-        {
+        else {
             break;
         }
+    }
+
+    // If an identifier/string/number follows without '(', that's a missing '(' error
+    if (check(TokenType::IDENTIFIER) || check(TokenType::STRING) || check(TokenType::NUMBER)) {
+        throw error(peek(), "Expected '(' after function name.");
     }
     return expr;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Parse the argument list after seeing '('.  
+// Ensures we don't exceed 255 args, then close with ')'.
+// ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::finishCall(ExprPtr callee)
 {
     std::vector<ExprPtr> arguments;
-
-    if(!check(TokenType::RIGHT_PAREN))
-    {
-        do
-        {
-            if(arguments.size() >= 255) error(peek(), "More than 255 arguments are not allowed.");
-            arguments.emplace_back(assignment());
+    if (!check(TokenType::RIGHT_PAREN)) {
+        do {
+            if (arguments.size() >= 255)
+                error(peek(), "Cannot have more than 255 arguments.");
+            arguments.push_back(assignment());
         } while (match({ TokenType::COMMA }));
     }
-
-    Token paren =  consume(TokenType::RIGHT_PAREN, 
-        "Expect ')' at the end of function arguments");
-    
+    Token paren = consume(TokenType::RIGHT_PAREN,
+                          "Expected ')' after arguments.");
     return makeExpr<Call>(callee, paren, arguments);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Parses primary literals: true, false, nothing, numbers, strings, identifiers
-// Also handles parenthesized expressions
+// primary: the atoms of our grammar:
+//   literals, identifiers, 'this', lambdas, and parenthesized exprs.
 // ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::primary()
 {
     if (match({ TokenType::FALSE }))   return makeExpr<Literal>(false);
-    if (match({ TokenType::TRUE }))    return makeExpr<Literal>(true);
+    if (match({ TokenType::TRUE  }))   return makeExpr<Literal>(true);
     if (match({ TokenType::NOTHING })) return makeExpr<Literal>(std::monostate{});
     if (match({ TokenType::NUMBER, TokenType::STRING }))
         return makeExpr<Literal>(previous().literal);
-    if (match({ TokenType::FUNC })) return lambda();
-    if (match({ TokenType::THIS })) return makeExpr<This>(previous());
-    if (match({ TokenType::IDENTIFIER }))
-    {
+    if (match({ TokenType::FUNC }))    return lambda();
+    if (match({ TokenType::THIS }))    return makeExpr<This>(previous());
+    if (match({ TokenType::IDENTIFIER })) {
         Token name = previous();
-
         return makeExpr<Variable>(name);
     }
-
     if (match({ TokenType::LEFT_PAREN })) {
+        // grouping: '( expr )'
         ExprPtr expr = expression();
-        consume(TokenType::RIGHT_PAREN, "Expected a ')'.");
+        consume(TokenType::RIGHT_PAREN, "Expected ')' after expression.");
         return makeExpr<Grouping>(expr);
     }
 
     throw error(peek(), "Expected an expression.");
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Parses a lambda literal: func(params) { body }
+// ─────────────────────────────────────────────────────────────────────────────
 ExprPtr Parser::lambda()
 {
-    consume(TokenType::LEFT_PAREN, "Expected '(' at the start of lambda function.");
+    consume(TokenType::LEFT_PAREN, "Expected '(' after 'func'.");
     std::vector<Token> params;
-
-    if(!check(TokenType::RIGHT_PAREN))
-    {
-        do
-        {
-            if(params.size() >= 255) error(peek(), "More than 255 agruments are not allowed.");
-            
-            params.push_back(consume(TokenType::IDENTIFIER, "Expected parameter name."));
+    if (!check(TokenType::RIGHT_PAREN)) {
+        do {
+            if (params.size() >= 255)
+                error(peek(), "Cannot have more than 255 parameters.");
+            params.push_back(
+                consume(TokenType::IDENTIFIER, "Expected parameter name."));
         } while (match({ TokenType::COMMA }));
     }
-
-    consume(TokenType::RIGHT_PAREN, "Expected ')' after function parameters.");
-                                                                                             
-    consume(TokenType::LEFT_BRACE, "Expected '{' at the start of lambda body.");
-
-    std::vector<std::shared_ptr<Statement>> body = blockStatement();
-
-    std::shared_ptr<FunctionStmt> stmt = std::make_shared<FunctionStmt>(std::nullopt, params, body);
-
-    return makeExpr<Lambda>(stmt);
+    consume(TokenType::RIGHT_PAREN, "Expected ')' after parameters.");
+    consume(TokenType::LEFT_BRACE,  "Expected '{' before lambda body.");
+    auto body = blockStatement();
+    // Lambdas have no name, so pass nullopt
+    auto fnStmt = std::make_shared<FunctionStmt>(std::nullopt, params, body);
+    return makeExpr<Lambda>(fnStmt);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Utility methods for matching/parsing tokens
+// match/check/advance/consume implement the basic token‐stream API.
 // ─────────────────────────────────────────────────────────────────────────────
-
 bool Parser::match(const std::vector<TokenType>& types)
 {
-    for (TokenType type : types) {
-        if (check(type)) {
+    for (auto t : types) {
+        if (check(t)) {
             advance();
             return true;
         }
@@ -566,22 +623,21 @@ Token Parser::advance()
     return previous();
 }
 
-Token Parser::consume(TokenType type, std::string message)
+Token Parser::consume(TokenType type, const std::string& message)
 {
     if (check(type)) return advance();
     throw error(peek(), message);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Error Recovery: skip tokens until we find a good restart point
+// Error recovery: skip tokens until a likely statement boundary.
 // ─────────────────────────────────────────────────────────────────────────────
 void Parser::synchronize()
 {
     advance();
     while (!isAtEnd()) {
         if (previous().type == TokenType::SEMICOLON) return;
-
-        switch (previous().type) {
+        switch (peek().type) {
             case TokenType::CLASS:
             case TokenType::FUNC:
             case TokenType::LET:
@@ -590,50 +646,51 @@ void Parser::synchronize()
             case TokenType::WHILE:
             case TokenType::RETURN:
                 return;
+            default:
+                break;
         }
-
         advance();
     }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AST Construction Helpers
+// AST node constructors: wrap raw data into shared‐ptr AST nodes.
 // ─────────────────────────────────────────────────────────────────────────────
 template<typename T, typename... Args>
-ExprPtr Parser::makeExpr(Args&&... args) 
+ExprPtr Parser::makeExpr(Args&&... args)
 {
     return std::make_shared<ExpressionNode>(T(std::forward<Args>(args)...));
 }
 
 template<typename T, typename... Args>
-std::shared_ptr<Statement> Parser::makeStmt(Args&&... args) 
+std::shared_ptr<Statement> Parser::makeStmt(Args&&... args)
 {
     return std::make_shared<Statement>(T(std::forward<Args>(args)...));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Error Reporting Utility
+// Helper to report parse errors via Flint::error, then throw.
 // ─────────────────────────────────────────────────────────────────────────────
-Parser::ParseError Parser::error(Token token, std::string message)
+Parser::ParseError Parser::error(const Token& token, const std::string& message)
 {
     Flint::error(token, message);
     return ParseError(message);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Peek/Pull Tokens
+// Peek and previous tokens; isAtEnd checks for EOF sentinel.
 // ─────────────────────────────────────────────────────────────────────────────
-bool Parser::isAtEnd()
+bool Parser::isAtEnd() const
 {
     return peek().type == TokenType::END_OF_FILE;
 }
 
-Token Parser::peek()
+Token Parser::peek() const
 {
     return tokens.at(current);
 }
 
-Token Parser::previous()
+Token Parser::previous() const
 {
     return tokens.at(current - 1);
 }

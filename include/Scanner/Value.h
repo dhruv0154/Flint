@@ -1,24 +1,15 @@
 #pragma once
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  LiteralValue Type
+//  Value.h – Runtime Value Representation for Flint
 // ─────────────────────────────────────────────────────────────────────────────
-//  Represents any literal or runtime value in the Flint language.
+//  Defines LiteralValue, a variant type that can hold any value produced
+//  or manipulated by Flint programs at runtime.
 //
-//  This type is used for:
-//   - Token literal values (e.g., numbers, strings)
-//   - Variable storage in the Environment
-//   - Evaluation results in the interpreter
-//
-//  Internally uses `std::variant`, a type-safe union to support multiple types.
-//
-//  Supported Types:
-//   - std::monostate   → default uninitialized state (useful for error handling)
-//   - double           → numeric literals with decimals
-//   - int              → integer literals (if separately tokenized)
-//   - std::string      → string values
-//   - std::nullptr_t   → `nothing` keyword (null-equivalent)
-//   - bool             → true / false
+//  Use cases:
+//    - Token literal values (numbers, strings, booleans, nothing)
+//    - Storage in variable environments
+//    - Results returned by expression evaluation
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include <variant>
@@ -27,17 +18,19 @@
 #include <vector>
 #include <iostream>
 
+// Forward declarations for callable/class/instance types
 class FlintCallable;
 class FlintClass;
 class FlintInstance;
 
+// LiteralValue variant holds all primitive and object types:
 using LiteralValue = std::variant<
-    std::monostate,   // Represents "no value" (used when token has no literal)
-    double,           // Floating-point numbers (e.g., 3.14)
-    std::string,      // String literals (e.g., "hello")
-    std::nullptr_t,   // Represents Flint's `nothing` (like `null` or `nil`)
-    bool,              // Boolean values: true, false
-    std::shared_ptr<FlintCallable>,
-    std::shared_ptr<FlintClass>,
-    std::shared_ptr<FlintInstance>
+    std::monostate,                // Default uninitialized state, signals absence of value
+    double,                        // Floating-point numeric literals (e.g., 3.14)
+    std::string,                   // String literals (e.g., "hello world")
+    std::nullptr_t,                // ‘nothing’ keyword (null/nil equivalent)
+    bool,                          // Boolean literals: true or false
+    std::shared_ptr<FlintCallable>,// Functions or native-callable objects
+    std::shared_ptr<FlintClass>,   // Class definitions (for instantiation)
+    std::shared_ptr<FlintInstance> // Object instances with fields and methods
 >;

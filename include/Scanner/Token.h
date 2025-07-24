@@ -1,46 +1,46 @@
 #pragma once
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Token Class
+//  Token.h – Lexical Token Representation for Flint
 // ─────────────────────────────────────────────────────────────────────────────
-//  Represents a single token in the source code, created by the Scanner.
+//  Declares the Token class, the fundamental unit output by the Scanner.
+//  Each Token encapsulates:
+//    - type: category from TokenType (keywords, operators, literals, etc.)
+//    - lexeme: the exact substring from the source code
+//    - literal: parsed runtime value for literal tokens (numbers, strings, bool, nil)
+//    - line: source line number for error reporting
 //
-//  Tokens are the smallest meaningful units in the Flint language.
-//  Each token includes:
-//    - Type: the token category (from TokenType enum)
-//    - Lexeme: the exact substring from source code
-//    - Literal: the parsed value (e.g., number, string)
-//    - Line: line number for error reporting
-//
-//  Example:
-//    Input:     let x = 42;
-//    Tokens:    [LET, "let"], [IDENTIFIER, "x"], [EQUAL, "="], [NUMBER, "42"], [SEMICOLON, ";"]
+//  Used by Parser to recognize grammar constructs and by Interpreter for
+//  error diagnostics and literal evaluation.
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include <string>
-#include <iostream>
-#include "Value.h"
-#include "TokenType.h"
+#include "Value.h"       // Defines LiteralValue: variant of supported literal types
+#include "TokenType.h"  // Enumerates all token categories (IDENTIFIER, NUMBER, PLUS, etc.)
 
-class Token
-{
+class Token {
 public:
-    TokenType type;           // Type of the token (e.g., IDENTIFIER, PLUS, NUMBER)
-    std::string lexeme;       // Raw substring from source (e.g., "let", "42", "+")
-    LiteralValue literal;     // Optional evaluated value (e.g., double/string/bool/nil)
-    size_t line;              // Line number in source (used for error messages)
+    TokenType type;        // Token category (e.g., IDENTIFIER, PLUS, NUMBER)
+    std::string lexeme;    // Exact source substring (e.g., "let", "x", "42")
+    LiteralValue literal;  // Evaluated literal value; unused for non-literals
+    size_t line;           // Line number in source text (for error messages)
 
-    // ─────────────────────────────────────────────────────────────
-    // Constructor
-    // ─────────────────────────────────────────────────────────────
-    Token(TokenType type, const std::string& lexeme, 
-          const LiteralValue literal, int line)
-        : type(type), lexeme(lexeme), literal(literal), line(line) {}
+    //──────────────────────────────────────────────────────────────────────────
+    // Constructor: initialize all token fields
+    //──────────────────────────────────────────────────────────────────────────
+    Token(TokenType type,
+          const std::string& lexeme,
+          LiteralValue literal,
+          int line)
+        : type(type)
+        , lexeme(lexeme)
+        , literal(literal)
+        , line(line)
+    {}
 
-    // ─────────────────────────────────────────────────────────────
-    // Debug Print
-    // ─────────────────────────────────────────────────────────────
-    // Converts token info to a string format for logging/debugging:
-    // Example: IDENTIFIER x  nil  (line 2)
+    //──────────────────────────────────────────────────────────────────────────
+    // toString: human-readable representation for debugging
+    //──────────────────────────────────────────────────────────────────────────
+    // Example output: "IDENTIFIER x nil (line 2)"
     std::string toString() const;
 };
