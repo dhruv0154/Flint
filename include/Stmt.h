@@ -180,13 +180,16 @@ struct BlockStmt {
 //  Declares a class with instance and static (class) methods.
 struct ClassStmt {
     Token name;  // Class identifier
+    ExprPtr superClass;
     std::vector<std::shared_ptr<Statement>> instanceMethods; // Methods on instances
     std::vector<std::shared_ptr<Statement>> classMethods;    // Static methods
 
     ClassStmt(Token name,
+              ExprPtr superClass,
               std::vector<std::shared_ptr<Statement>> instanceMethods,
               std::vector<std::shared_ptr<Statement>> classMethods)
         : name(std::move(name)),
+          superClass(std::move(superClass)),
           instanceMethods(std::move(instanceMethods)),
           classMethods(std::move(classMethods)) {}
 };

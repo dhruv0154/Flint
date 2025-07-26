@@ -18,5 +18,6 @@
 
 enum class ClassType {
     NONE,   // Default: no class context active
-    CLASS   // Inside a class declaration context
+    CLASS,   // Inside a class declaration context
+    SUBCLASS // Inside a child class which has a super class
 };

@@ -64,6 +64,7 @@ struct Lambda;
 struct Get;
 struct Set;
 struct This;
+struct Super;
 
 // ─────────────────────────────────────────────────────────────
 //  ExpressionNode
@@ -83,7 +84,8 @@ using ExpressionNode = std::variant<
     Lambda,
     Get,
     Set,
-    This
+    This,
+    Super
 >;
 
 // ─────────────────────────────────────────────────────────────
@@ -237,4 +239,14 @@ struct This {
 
     This(Token keyword)
         : keyword(std::move(keyword)) {}
+};
+
+// ─────────────────────────────────────────────────────────────
+//  Super: usage of 'super' keyword to call superClass methods
+// ─────────────────────────────────────────────────────────────
+struct Super {
+    Token keyword;
+    Token method;
+
+    Super(Token keyword, Token method) : keyword(keyword), method(method) {}
 };

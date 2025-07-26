@@ -20,9 +20,11 @@ private:
     // Methods that instances of this class can call
     mutable std::unordered_map<std::string, std::shared_ptr<FlintFunction>> instanceMethods;
 
+    
     // Static methods defined on the class itself
     mutable std::unordered_map<std::string, std::shared_ptr<FlintFunction>> classMethods;
-
+    
+    std::shared_ptr<FlintClass> superClass;
 public:
     // Returns a string representation of the class (e.g., the class name)
     std::string toString() const override { return name; }
@@ -44,6 +46,8 @@ public:
     // Constructor to initialize the class with its name, instance methods, and class (static) methods
     FlintClass(std::string name,
                std::unordered_map<std::string, std::shared_ptr<FlintFunction>> instanceMethods,
-               std::unordered_map<std::string, std::shared_ptr<FlintFunction>> classMethods) : 
-        name(name), instanceMethods(instanceMethods), classMethods(classMethods) {}
+               std::unordered_map<std::string, std::shared_ptr<FlintFunction>> classMethods,
+            std::shared_ptr<FlintClass> superClass) : 
+        name(name), instanceMethods(instanceMethods), classMethods(classMethods), 
+        superClass(superClass) {}
 };

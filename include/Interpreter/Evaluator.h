@@ -69,6 +69,9 @@ public:
     // Handle 'this' keyword to reference current instance.
     LiteralValue operator()(const This& expr, ExprPtr exprPtr) const;
 
+    // Handle 'super' keyword to reference the super class.
+    LiteralValue operator()(const Super& expr, ExprPtr exprPtr) const;
+
     //──────────────────────────────────────────────────────────────────────────
     // Evaluation Helpers
     //──────────────────────────────────────────────────────────────────────────

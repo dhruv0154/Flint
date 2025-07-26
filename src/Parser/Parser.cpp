@@ -48,7 +48,15 @@ std::shared_ptr<Statement> Parser::parseClassDeclaration()
 {
     // Require an identifier for the class name
     Token name = consume(TokenType::IDENTIFIER, "Expected an identifier for class name.");
-    consume(TokenType::LEFT_BRACE,    "Expected '{' at the start of class body.");
+
+    ExprPtr superClass = nullptr;
+
+    if(match({ TokenType::LESS })) {
+        consume(TokenType::IDENTIFIER, "Expected an identifier for super class name.");
+        superClass = makeExpr<Variable>(previous());
+    }
+
+    consume(TokenType::LEFT_BRACE, "Expected '{' at the start of class body.");
 
     std::vector<std::shared_ptr<Statement>> instanceMethods;
     std::vector<std::shared_ptr<Statement>> classMethods;
@@ -66,7 +74,7 @@ std::shared_ptr<Statement> Parser::parseClassDeclaration()
 
     consume(TokenType::RIGHT_BRACE, "Expected '}' at the end of class body.");
     // Build a ClassStmt node with both method lists
-    return makeStmt<ClassStmt>(name, instanceMethods, classMethods);
+    return makeStmt<ClassStmt>(name, superClass, instanceMethods, classMethods);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -560,6 +568,13 @@ ExprPtr Parser::primary()
         return makeExpr<Literal>(previous().literal);
     if (match({ TokenType::FUNC }))    return lambda();
     if (match({ TokenType::THIS }))    return makeExpr<This>(previous());
+    if (match({ TokenType::SUPER })) {
+        Token keyword = previous();
+        consume(TokenType::DOT, "Expected '.' after 'super'.");
+        Token method = consume(TokenType::IDENTIFIER, 
+            "Expected an identifier for super class method name after '.'");
+        return makeExpr<Super>(keyword, method);
+    }
     if (match({ TokenType::IDENTIFIER })) {
         Token name = previous();
         return makeExpr<Variable>(name);

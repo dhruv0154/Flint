@@ -47,6 +47,11 @@ std::shared_ptr<FlintFunction> FlintClass::findMethod(std::string name) const
     if (instanceMethods.count(name)) {
         return instanceMethods.at(name);
     }
+
+    if (superClass)
+    {
+        return superClass -> findMethod(name);
+    }
     return nullptr;
 }
 

@@ -109,6 +109,21 @@ void Resolver::operator()(const ClassStmt& classStatement)
     declare(classStatement.name);  // placeholder so class name is in scope
     define(classStatement.name);   // now resolvable inside methods
 
+    if (classStatement.superClass && 
+        std::get<Variable>(*classStatement.superClass).name.lexeme == 
+        classStatement.name.lexeme) {
+        
+        Flint::error(std::get<Variable>
+            (*classStatement.superClass).name, "A class can't inherit from itself.");
+    }
+
+    if (classStatement.superClass) {
+        currentClass = ClassType::SUBCLASS;
+        resolve(classStatement.superClass);
+        beginScope();
+        scopes.back()["super"] = true;
+    }
+
     // ‘this’ is valid within instance‐method scopes
     beginScope();
     scopes.back()["this"] = true;
@@ -129,6 +144,8 @@ void Resolver::operator()(const ClassStmt& classStatement)
     }
 
     endScope();
+
+    if (classStatement.superClass) endScope();
     currentClass = enclosing;
 }
 
@@ -212,6 +229,21 @@ void Resolver::operator()(const This& expr, ExprPtr exprPtr)
     resolveLocal(exprPtr, expr.keyword);
 }
 
+// Super expr: resolve super keyword for super classes
+void Resolver::operator()(const Super& expr, ExprPtr exprPtr)
+{
+    if (currentClass == ClassType::NONE)
+        Flint::error(expr.keyword,
+            "Use of 'super' outside a class is not allowed."
+        );
+    if (currentClass != ClassType::SUBCLASS)
+        Flint::error(expr.keyword, 
+            "Use of 'super' inside a class with no super class is not allowed."
+        );
+    
+    resolveLocal(exprPtr, expr.keyword);
+}
+
 // resolveLocal: find the nearest scope containing the name and tell
 // the interpreter the lexical distance for fast lookups at runtime.
 void Resolver::resolveLocal(ExprPtr expr, Token name)
@@ -286,7 +318,8 @@ void Resolver::resolve(ExprPtr expr)
         using T = std::decay_t<decltype(actualExpr)>;
         if constexpr (std::is_same_v<T, Variable> ||
                       std::is_same_v<T, Assignment> ||
-                      std::is_same_v<T, This>)
+                      std::is_same_v<T, This> ||
+                      std::is_same_v<T, Super>)
         {
             (*this)(actualExpr, expr);
         } else {

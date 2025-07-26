@@ -1,9 +1,19 @@
-class Test {
-  value {
-    return 42;
+class A {
+  method() {
+    print ("A method");
   }
 }
 
-let t = Test();
-print (t.value);    // 42
-print (t.value());  // RuntimeError: Can only call functions and classes
+class B < A {
+  method() {
+    print ("B method");
+  }
+
+  test() {
+    super.method();
+  }
+}
+
+class C < B {}
+
+C().test();

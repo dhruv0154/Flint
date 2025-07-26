@@ -29,13 +29,15 @@ private:
     //──────────────────────────────────────────────────────────────────────────
     std::unordered_map<std::string, LiteralValue> values;
 
+   
+
+public:
     //──────────────────────────────────────────────────────────────────────────
     // enclosing: parent scope (nullptr for global scope).
     // Enables nested scope lookup: if not found locally, delegate.
     //──────────────────────────────────────────────────────────────────────────
     std::shared_ptr<Environment> enclosing;
-
-public:
+    
     //──────────────────────────────────────────────────────────────────────────
     // Constructor: global scope (no enclosing)
     //──────────────────────────────────────────────────────────────────────────
