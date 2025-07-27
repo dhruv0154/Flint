@@ -1,7 +1,7 @@
-#include "FlintInstance.h"
-#include "FlintClass.h"
-#include "RuntimeError.h"
-#include "FlintFunction.h"
+#include "Flint/Callables/Classes/FlintInstance.h"
+#include "Flint/Callables/Classes/FlintClass.h"
+#include "Flint/Exceptions/RuntimeError.h"
+#include "Flint/Callables/Functions/FlintFunction.h"
 
 // Convert the instance to string representation (e.g., "MyClass instance")
 std::string FlintInstance::toString() const {

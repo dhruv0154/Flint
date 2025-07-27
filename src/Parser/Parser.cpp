@@ -1,6 +1,6 @@
-#include "Parser/Parser.h"
+#include "Flint/Parser/Parser.h"
 #include "Flint/Flint.h"
-#include "Stmt.h"
+#include "Flint/ASTNodes/Stmt.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry point: parse a sequence of statements until EOF.

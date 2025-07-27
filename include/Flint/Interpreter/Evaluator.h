@@ -16,7 +16,7 @@
 
 #include <memory>
 #include <cmath>
-#include "ExpressionNode.h"           // AST node definitions (ExprPtr)
+#include "Flint/ASTNodes/Stmt.h"           // AST node definitions (ExprPtr)
 #include "Flint/Environment.h"        // For variable resolution
 
 class Interpreter;  // Forward declare to avoid cyclic include

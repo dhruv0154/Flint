@@ -1,11 +1,11 @@
-#include "Interpreter/Evaluator.h"
-#include "Stmt.h"
-#include "Interpreter/Interpreter.h"
-#include "RuntimeError.h"
-#include "FlintCallable.h"
-#include "FlintFunction.h"
-#include "FlintInstance.h"
-#include "FlintClass.h"
+#include "Flint/Interpreter/Evaluator.h"
+#include "Flint/ASTNodes/Stmt.h"
+#include "Flint/Interpreter/Interpreter.h"
+#include "Flint/Exceptions/RuntimeError.h"
+#include "Flint/Callables/FlintCallable.h"
+#include "Flint/Callables/Functions/FlintFunction.h"
+#include "Flint/Callables/Classes/FlintInstance.h"
+#include "Flint/Callables/Classes/FlintClass.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Binary Expression Evaluation

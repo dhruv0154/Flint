@@ -1,6 +1,6 @@
 #include "Flint/Environment.h"
-#include "RuntimeError.h"
-#include "Interpreter/Interpreter.h"
+#include "Flint/Exceptions/RuntimeError.h"
+#include "Flint/Interpreter/Interpreter.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Environment::define

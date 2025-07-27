@@ -18,8 +18,8 @@
 
 #include <vector>
 #include <string>
-#include "Scanner/Token.h"   // Required for passing the closing paren for error reporting
-#include "Scanner/Value.h"   // Defines LiteralValue (variant for function arguments)
+#include "Flint/Scanner/Token.h"   // Required for passing the closing paren for error reporting
+#include "Flint/Parser/Value.h"   // Defines LiteralValue (variant for function arguments)
 
 class Interpreter;           // Forward declaration to avoid circular dependency
 

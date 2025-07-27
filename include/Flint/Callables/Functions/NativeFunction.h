@@ -1,8 +1,8 @@
 #pragma once
 
-#include "FlintCallable.h"
 #include <functional>
 #include <string>
+#include "Flint/Callables/FlintCallable.h"
 
 // Represents a built-in (native) function callable from Flint code.
 class NativeFunction : public FlintCallable 

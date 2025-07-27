@@ -1,4 +1,4 @@
-#include "FlintFunction.h"
+#include "Flint/Callables/Functions/FlintFunction.h"
 
 // Executes the function body and returns the result
 LiteralValue FlintFunction::call(Interpreter &interpreter, 

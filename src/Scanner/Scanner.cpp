@@ -7,7 +7,7 @@
 // The scanner also handles whitespace, comments, and error reporting.
 // ------------------------------------------------------------
 
-#include "Scanner/Scanner.h"
+#include "Flint/Scanner/Scanner.h"
 #include "Flint/Flint.h"
 
 // ---------------------------------------------------------------------------

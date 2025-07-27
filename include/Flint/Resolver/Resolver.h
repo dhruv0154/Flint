@@ -1,10 +1,10 @@
 #pragma once
 
 #include <unordered_map>
-#include "Stmt.h"
-#include "ExpressionNode.h"
-#include "FunctionType.h"
-#include "ClassType.h"
+#include "Flint/ASTNodes/Stmt.h"
+#include "Flint/ASTNodes/ExpressionNode.h"
+#include "Flint/Callables/Functions/FunctionType.h"
+#include "Flint/Callables/Classes/ClassType.h"
 
 class Interpreter;
 

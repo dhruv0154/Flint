@@ -17,7 +17,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include <iostream>
-#include "Scanner/Token.h"
+#include "Flint/Scanner/Token.h"
 
 class RuntimeError : public std::runtime_error
 {

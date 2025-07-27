@@ -11,8 +11,8 @@
 #include <vector>
 #include <string>
 #include <variant>
-#include "Scanner/Token.h"      // Token type for operators, identifiers, literals
-#include "Scanner/Value.h"      // LiteralValue variant holding runtime values
+#include "Flint/Scanner/Token.h"      // Token type for operators, identifiers, literals
+#include "Flint/Parser/Value.h"      // LiteralValue variant holding runtime values
 
 // ─────────────────────────────────────────────────────────────
 //  Forward declarations of all statement types

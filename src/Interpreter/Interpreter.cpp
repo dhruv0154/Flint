@@ -1,16 +1,16 @@
 #include <chrono>
-#include "Interpreter/Interpreter.h"
+#include "Flint/Interpreter/Interpreter.h"
 #include "Flint/Flint.h"
-#include "ExpressionNode.h"
-#include "BreakException.h"
-#include "ContinueException.h"
-#include "RuntimeError.h"
-#include "FlintCallable.h"
-#include "NativeFunction.h"
-#include "FlintFunction.h"
-#include "ReturnException.h"
-#include "FlintClass.h"
-#include "FlintInstance.h"
+#include "Flint/ASTNodes/ExpressionNode.h"
+#include "Flint/Exceptions/BreakException.h"
+#include "Flint/Exceptions/ContinueException.h"
+#include "Flint/Exceptions/RuntimeError.h"
+#include "Flint/Callables/FlintCallable.h"
+#include "Flint/Callables/Functions/NativeFunction.h"
+#include "Flint/Callables/Functions/FlintFunction.h"
+#include "Flint/Exceptions/ReturnException.h"
+#include "Flint/Callables/Classes/FlintClass.h"
+#include "Flint/Callables/Classes/FlintInstance.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Global Interpreter State

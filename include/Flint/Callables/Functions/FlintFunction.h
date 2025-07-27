@@ -1,8 +1,8 @@
-#include "Stmt.h"
-#include "Interpreter/Interpreter.h"
-#include "FlintCallable.h"
+#include "Flint/ASTNodes/Stmt.h"
+#include "Flint/Interpreter/Interpreter.h"
+#include "Flint/Callables/FlintCallable.h"
 #include "Flint/Environment.h"
-#include "ReturnException.h"
+#include "Flint/Exceptions/ReturnException.h"
 
 // FlintFunction represents a user-defined function in the language.
 // It implements FlintCallable, meaning it can be "called" like a function.

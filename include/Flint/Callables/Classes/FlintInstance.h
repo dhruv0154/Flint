@@ -3,9 +3,9 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
-#include "Scanner/Value.h"
-#include "Scanner/Token.h"
-#include "Interpreter/Interpreter.h"
+#include "Flint/Parser/Value.h"
+#include "Flint/Scanner/Token.h"
+#include "Flint/Interpreter/Interpreter.h"
 
 class FlintClass;
 

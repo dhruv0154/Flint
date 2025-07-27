@@ -19,8 +19,8 @@
 
 #include <unordered_map>
 #include <optional>
-#include "Scanner/Value.h"   // LiteralValue
-#include "Scanner/Token.h"   // Token for name & errors
+#include "Flint/Parser/Value.h"   // LiteralValue
+#include "Flint/Scanner/Token.h"   // Token for name & errors
 
 class Environment : public std::enable_shared_from_this<Environment> {
 private:

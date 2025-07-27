@@ -1,124 +1,82 @@
 #pragma once
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Interpreter.h – Runtime Statement Execution for Flint
+//  Scanner.h – Lexical Analysis for Flint
 // ─────────────────────────────────────────────────────────────────────────────
-//  Defines the Interpreter class, which executes statement AST nodes
-//  and orchestrates expression evaluation via the Evaluator.
-//  Manages the runtime environment (variable scopes, function contexts).
+//  Converts raw source code into a sequence of Tokens for parsing.
+//  Recognizes:
+//    - Single- and multi-character operators (e.g., +, -, ==)
+//    - Punctuation (parentheses, braces, semicolons)
+//    - Literals (identifiers, strings, numbers)
+//    - Keywords (let, print, if, etc.)
+//  Handles whitespace, comments, and reports invalid tokens.
 // ─────────────────────────────────────────────────────────────────────────────
 
-#include "ExpressionNode.h"       // AST nodes for expressions
-#include "Flint/Environment.h"    // Environment for variable scopes
-#include "Evaluator.h"            // Expression evaluator
-#include "Stmt.h"                 // AST nodes for statements
-#include <unordered_map>
-#include <memory>
-#include <vector>
 #include <string>
+#include <vector>
+#include <unordered_map>
+#include "Token.h"   // Token struct: type, lexeme, literal, line
+#include "Flint/Parser/Value.h"   // LiteralValue variant for number/string literals
 
-class Interpreter {
-private:
-    //──────────────────────────────────────────────────────────────────────────
-    // isInsideLoop: flag to track if currently in a loop context
-    // Used to validate break/continue usage and manage loop control flow.
-    //──────────────────────────────────────────────────────────────────────────
-    mutable bool isInsideLoop = false;
-
-    //──────────────────────────────────────────────────────────────────────────
-    // globals: the global (outermost) environment
-    // Stores all top-level variable and function definitions.
-    //──────────────────────────────────────────────────────────────────────────
-    std::shared_ptr<Environment> globals;
-
-    //──────────────────────────────────────────────────────────────────────────
-    // locals: mapping from expression nodes to their lexical scope depth
-    // Populated by the Resolver.  Enables fast lookups via Environment.getAt().
-    //──────────────────────────────────────────────────────────────────────────
-    std::unordered_map<ExprPtr, int> locals;
-
-    //──────────────────────────────────────────────────────────────────────────
-    // evaluator: helper object to compute expression values
-    // Created on first use; uses this interpreter for context (e.g., function calls).
-    //──────────────────────────────────────────────────────────────────────────
-    mutable std::unique_ptr<Evaluator> evaluator;
-
-    //──────────────────────────────────────────────────────────────────────────
-    // environment: current environment (changes in blocks, functions)
-    // Points to globals initially, then to nested block/function scopes.
-    //──────────────────────────────────────────────────────────────────────────
-    mutable std::shared_ptr<Environment> environment;
-
+class Scanner {
 public:
     //──────────────────────────────────────────────────────────────────────────
-    // Statement Visitors: executes different statement types
-    // Invoked by std::visit on Statement variant.
+    // Constructor
     //──────────────────────────────────────────────────────────────────────────
-
-    // while (condition) body
-    void operator()(const WhileStmt& stmt) const;
-
-    // Function declaration: registers function in current environment
-    void operator()(const FunctionStmt& stmt) const;
-
-    // return statement inside function
-    void operator()(const ReturnStmt& stmt) const;
-
-    // if (condition) thenBranch else elseBranch
-    void operator()(const IfStmt& stmt) const;
-
-    // break: exit current loop
-    void operator()(const BreakStmt& stmt) const;
-
-    // continue: jump to next loop iteration
-    void operator()(const ContinueStmt& stmt) const;
-
-    // internal node for for-loop desugaring: ensures continue advances index
-    void operator()(const TryCatchContinueStmt& stmt) const;
-
-    // expression stmt: evaluate and discard result
-    void operator()(const ExpressionStmt& exprStatement) const;
-
-    // let stmt: declare variables
-    void operator()(const LetStmt& letStatement) const;
-
-    // block stmt: execute a series of statements in new scope
-    void operator()(const BlockStmt& blockStatement) const;
-
-    // class declaration: define a new class
-    void operator()(const ClassStmt& classStmt) const;
+    // @param source: full source code as a single string
+    explicit Scanner(const std::string& source);
 
     //──────────────────────────────────────────────────────────────────────────
-    // Runtime Helpers
+    // scanTokens
     //──────────────────────────────────────────────────────────────────────────
+    // Performs the full scanning pass and returns the list of Tokens.
+    std::vector<Token> scanTokens();
 
-    // Checks if a string represents a valid number literal (for parsing inputs)
-    bool isNumber(const std::string& str);
+private:
+    //──────────────────────────────────────────────────────────────────────────
+    // Core state
+    //──────────────────────────────────────────────────────────────────────────
+    std::string source;                        // Source text
+    std::vector<Token> tokens;                 // Accumulated tokens
+    static std::unordered_map<std::string, TokenType> keywords;  // Keyword lookup
 
-    // Converts any LiteralValue to its string representation
-    // Used by print and error messages.
-    static std::string stringify(const LiteralValue& val);
+    size_t start = 0;    // Start of current lexeme
+    size_t current = 0;  // Current position in source
+    size_t line = 1;     // Current line number for error reporting
 
     //──────────────────────────────────────────────────────────────────────────
-    // Entry Points for Execution
+    // scanToken
     //──────────────────────────────────────────────────────────────────────────
+    // Scans a single token from the source at `current`.
+    void scanToken();
 
-    // Execute a list of statement nodes (program or REPL line)
-    void interpret(std::vector<std::shared_ptr<Statement>> statements) const;
+    //──────────────────────────────────────────────────────────────────────────
+    // Character utilities
+    //──────────────────────────────────────────────────────────────────────────
+    bool isAtEnd() const;            // True when `current >= source.length()`
+    char advance();                  // Consume and return next character
+    char peek() const;               // Look at current char without consuming
+    char peekNext() const;           // Look ahead one character
+    bool match(char expected);       // If next char equals expected, consume it
 
-    // Execute a single statement
-    void execute(std::shared_ptr<Statement> statement) const;
+    //──────────────────────────────────────────────────────────────────────────
+    // Character classification
+    //──────────────────────────────────────────────────────────────────────────
+    bool isDigit(char c) const;      // Checks '0'–'9'
+    bool isAlpha(char c) const;      // Checks 'a'–'z', 'A'–'Z', and '_'
+    bool isAlphaNumeric(char c) const; // isAlpha || isDigit
 
-    // Execute a block of statements in a new environment
-    void executeBlock(std::vector<std::shared_ptr<Statement>> statements,
-                      std::shared_ptr<Environment> newEnv) const;
+    //──────────────────────────────────────────────────────────────────────────
+    // Token emission
+    //──────────────────────────────────────────────────────────────────────────
+    void addToken(TokenType type);                          // No literal
+    void addToken(TokenType type, LiteralValue literal);    // With literal value
 
-    // Store resolved scope depth for a variable expression
-    void resolve(ExprPtr expr, int depth);
-
-    // Allow Evaluator to access private members (environment, locals)
-    friend class Evaluator;
-
-    // Constructor: initializes global environment and evaluator
-    Interpreter();
+    //──────────────────────────────────────────────────────────────────────────
+    // Lexeme handlers
+    //──────────────────────────────────────────────────────────────────────────
+    void string();        // Process string literal until closing '"'
+    void number();        // Process integer or floating-point literal
+    void identifier();    // Process identifier or keyword
+    void blockComments(); // Skip over nested /* ... */ comments
 };

@@ -15,7 +15,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include <string>
-#include "Value.h"       // Defines LiteralValue: variant of supported literal types
+#include "Flint/Parser/Value.h"       // Defines LiteralValue: variant of supported literal types
 #include "TokenType.h"  // Enumerates all token categories (IDENTIFIER, NUMBER, PLUS, etc.)
 
 class Token {

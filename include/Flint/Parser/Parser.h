@@ -13,10 +13,10 @@
 #include <vector>
 #include <memory>
 #include <functional>
-#include "Scanner/TokenType.h"  // TokenType enum for matching
-#include "Scanner/Token.h"      // Token struct holding lexeme, type, literal
-#include "ExpressionNode.h"     // ExprPtr and expression node variants
-#include "Stmt.h"               // Statement variants
+#include "Flint/Scanner/TokenType.h"  // TokenType enum for matching
+#include "Flint/Scanner/Token.h"      // Token struct holding lexeme, type, literal
+#include "Flint/ASTNodes/ExpressionNode.h"     // ExprPtr and expression node variants
+#include "Flint/ASTNodes/Stmt.h"               // Statement variants
 
 class Parser {
 public:

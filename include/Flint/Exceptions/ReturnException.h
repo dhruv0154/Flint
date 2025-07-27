@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-#include "Scanner/Value.h"
+#include "Flint/Parser/Value.h"
 
 // A custom exception class used to signal a return statement being evaluated in a function.
 class ReturnException : public std::runtime_error

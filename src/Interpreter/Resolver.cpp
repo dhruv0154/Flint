@@ -1,4 +1,4 @@
-#include "Resolver.h"
+#include "Flint/Resolver/Resolver.h"
 #include "Flint/Flint.h"
 
 // ─────────────────────────────────────────────────────────────────────────────

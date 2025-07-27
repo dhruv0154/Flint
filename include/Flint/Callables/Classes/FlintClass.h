@@ -3,8 +3,8 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
-#include "FlintCallable.h"
-#include "FlintInstance.h"
+#include "Flint/Callables/FlintCallable.h"
+#include "Flint/Callables/Classes/FlintInstance.h"
 
 // Forward declaration to avoid circular dependency
 class FlintFunction;

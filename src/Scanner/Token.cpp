@@ -7,9 +7,9 @@
 //   "=" 5 "true"
 // ---------------------------------------------------------------------------
 
-#include "Scanner/Token.h"
 #include <sstream>  // For building the output string
 #include <iomanip>  // For controlling float precision
+#include "Flint/Scanner/Token.h"
 
 std::string Token::toString() const
 {

@@ -2,8 +2,8 @@
 
 #include <string>
 #include <vector>
-#include "RuntimeError.h"
-#include "Interpreter/Interpreter.h"
+#include "Flint/Exceptions/RuntimeError.h"
+#include "Flint/Interpreter/Interpreter.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Flint Class — Core Entry Point for Running Code

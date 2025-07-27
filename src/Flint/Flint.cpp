@@ -15,14 +15,12 @@
 #include <stdexcept>            // Exception classes
 #include <vector>               // Token container
 
-#include "Scanner/Scanner.h"     // Lexer/tokenizer
+#include "Flint/Scanner/Scanner.h"     // Lexer/tokenizer
 #include "Flint/Flint.h"         // Flint runtime system
-#include "Parser/Parser.h"       // AST parser
-#include "Interpreter/Evaluator.h"
-#include "Interpreter/Interpreter.h"
-#include "Resolver.h"
-// #include "AstPrinter.h"
-// #include "RpnPrinter.h"
+#include "Flint/Parser/Parser.h"       // AST parser
+#include "Flint/Interpreter/Evaluator.h"
+#include "Flint/Interpreter/Interpreter.h"
+#include "Flint/Resolver/Resolver.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Global Interpreter State Flags

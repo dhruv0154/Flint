@@ -1,7 +1,7 @@
-#include "FlintClass.h"
-#include "FlintFunction.h"
-#include "FlintInstance.h"
-#include "RuntimeError.h"
+#include "Flint/Callables/Classes/FlintClass.h"
+#include "Flint/Callables/Functions/FlintFunction.h"
+#include "Flint/Callables/Classes/FlintInstance.h"
+#include "Flint/Exceptions/RuntimeError.h"
 
 // ─────────────────────────────────────────────────────────────
 // Calls the class like a function (for instantiation).
