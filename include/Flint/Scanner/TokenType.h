@@ -21,6 +21,8 @@ enum class TokenType {
     RIGHT_PAREN,    // )  Close grouping or function call
     LEFT_BRACE,     // {  Begin block
     RIGHT_BRACE,    // }  End block
+    LEFT_BRACKET,   // [ Start array elements or access/set a value at an index
+    RIGHT_BRACKET,  // ] End array elements or access/set a value at an index
     COMMA,          // ,  Separator in lists or parameters
     DOT,            // .  Property access or method invocation
     MINUS,          // -  Subtraction or negation

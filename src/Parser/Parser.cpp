@@ -366,6 +366,12 @@ ExprPtr Parser::assignment()
             return makeExpr<Set>(get.object, get.name, value);
         }
 
+        // Array element assigment: a[1] = 5;
+        else if (std::holds_alternative<GetIndex>(*expr)) {
+            auto getIndex = std::get<GetIndex>(*expr);
+            return makeExpr<SetIndex>(getIndex.array, getIndex.index, value, getIndex.bracket);
+        }
+
         // Otherwise it's an invalid target
         throw error(equals, "Invalid assignment target.");
     }
@@ -524,6 +530,12 @@ ExprPtr Parser::call()
                                  "Expected property name after '.'.");
             expr = makeExpr<Get>(expr, name);
         }
+        else if (match({ TokenType::LEFT_BRACKET })) {
+            Token bracket = previous();
+            ExprPtr indexExpr = expression();
+            consume(TokenType::RIGHT_BRACKET, "Expected ']' after index.");
+            expr = makeExpr<GetIndex>(expr, indexExpr, bracket);
+        }
         else {
             break;
         }
@@ -574,6 +586,18 @@ ExprPtr Parser::primary()
         Token method = consume(TokenType::IDENTIFIER, 
             "Expected an identifier for super class method name after '.'");
         return makeExpr<Super>(keyword, method);
+    }
+    if (match({ TokenType::LEFT_BRACKET })) {
+        std::vector<ExprPtr> elements;
+
+        if(!check(TokenType::RIGHT_BRACKET)) {
+            do {
+                elements.push_back(assignment());
+            } while (match({ TokenType::COMMA })); 
+        }
+
+        consume(TokenType::RIGHT_BRACKET, "Expected ']' at the end of array elements.");
+        return makeExpr<Array>(elements);
     }
     if (match({ TokenType::IDENTIFIER })) {
         Token name = previous();

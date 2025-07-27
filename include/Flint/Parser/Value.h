@@ -22,6 +22,8 @@
 class FlintCallable;
 class FlintClass;
 class FlintInstance;
+class FlintArray;
+
 
 // LiteralValue variant holds all primitive and object types:
 using LiteralValue = std::variant<
@@ -32,5 +34,6 @@ using LiteralValue = std::variant<
     bool,                          // Boolean literals: true or false
     std::shared_ptr<FlintCallable>,// Functions or native-callable objects
     std::shared_ptr<FlintClass>,   // Class definitions (for instantiation)
-    std::shared_ptr<FlintInstance> // Object instances with fields and methods
+    std::shared_ptr<FlintInstance>, // Object instances with fields and methods
+    std::shared_ptr<FlintArray>   // For arrays
 >;

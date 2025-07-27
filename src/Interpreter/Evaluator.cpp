@@ -6,6 +6,7 @@
 #include "Flint/Callables/Functions/FlintFunction.h"
 #include "Flint/Callables/Classes/FlintInstance.h"
 #include "Flint/Callables/Classes/FlintClass.h"
+#include "Flint/FlintArray.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Binary Expression Evaluation
@@ -280,6 +281,17 @@ LiteralValue Evaluator::operator()(const Super& expr, ExprPtr exprPtr) const
     return method -> bind(object);
 }
 
+LiteralValue Evaluator::operator()(const Array& expr) const
+{
+    std::vector<LiteralValue> elements;
+
+    for(auto& e : expr.elements) {
+        elements.push_back(evaluate(e));
+    }
+
+    return std::make_shared<FlintArray>(std::move(elements));
+}
+
 LiteralValue Evaluator::evaluate(const ExprPtr& expr) const 
 {
     if (!expr) return std::monostate{};
@@ -296,6 +308,49 @@ LiteralValue Evaluator::evaluate(const ExprPtr& expr) const
     }, *expr);
 
     return result;
+}
+
+LiteralValue Evaluator::operator()(const GetIndex& expr) const
+{
+    LiteralValue arrVal = evaluate(expr.array);
+    LiteralValue indexVal = evaluate(expr.index);
+
+    if (auto arrPtr = std::get_if<std::shared_ptr<FlintArray>>(&arrVal))
+    {
+        checkOperandType(expr.bracket, indexVal);
+        int index = static_cast<int>(std::get<double>(indexVal));
+        if(index < 0 || index >= (int)(*arrPtr) -> elements.size())
+            throw RuntimeError(expr.bracket, "Array index out of bounds.");
+        return (*arrPtr) -> elements[index];
+    }
+
+    if (auto strPtr = std::get_if<std::string>(&arrVal))
+    {
+        checkOperandType(expr.bracket, indexVal);
+        int index = static_cast<int>(std::get<double>(indexVal));
+        if(index < 0 || index >= (int)(*strPtr).length())
+            throw RuntimeError(expr.bracket, "Array index out of bounds.");
+        return std::string(1, (*strPtr)[index]);
+    }
+
+    throw RuntimeError(expr.bracket, "Only arrays or strings can be indexed.");
+}
+
+LiteralValue Evaluator::operator()(const SetIndex& expr) const
+{
+    auto arrVal = evaluate(expr.array);
+    auto indexVal = evaluate(expr.index);
+    auto newVal = evaluate(expr.value);
+
+    if (auto arrPtr = std::get_if<std::shared_ptr<FlintArray>>(&arrVal)) {
+        checkOperandType(expr.bracket, indexVal);
+        int index = static_cast<int>(std::get<double>(indexVal));
+        if(index < 0 || index >= (int)(*arrPtr) -> elements.size())
+            throw RuntimeError(expr.bracket, "Array index out of bounds.");
+        (*arrPtr)->elements[index] = newVal;
+        return newVal;
+    }
+    throw RuntimeError(expr.bracket, "Only arrays support indexed assignment.");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

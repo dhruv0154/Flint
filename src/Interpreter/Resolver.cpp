@@ -85,21 +85,6 @@ void Resolver::operator()(const WhileStmt &stmt)
 void Resolver::operator()(const ContinueStmt &stmt) { /* nothing */ }
 void Resolver::operator()(const BreakStmt &stmt)    { /* nothing */ }
 
-// Variable expr: check for self‐reference in initializer, then record its depth
-void Resolver::operator()(const Variable &expr, ExprPtr exprPtr)
-{
-    if (!scopes.empty()) {
-        auto &scope = scopes.back();
-        auto it = scope.find(expr.name.lexeme);
-        // if declared but not yet defined → illegal read in its own init
-        if (it != scope.end() && !it->second)
-            Flint::error(expr.name,
-                "Cannot read local variable '" + expr.name.lexeme +
-                "' in its own initializer.");
-    }
-    resolveLocal(exprPtr, expr.name);
-}
-
 // ClassStmt: handles static & instance methods, sets up ‘this’ binding
 void Resolver::operator()(const ClassStmt& classStatement)
 {
@@ -147,6 +132,21 @@ void Resolver::operator()(const ClassStmt& classStatement)
 
     if (classStatement.superClass) endScope();
     currentClass = enclosing;
+}
+
+// Variable expr: check for self‐reference in initializer, then record its depth
+void Resolver::operator()(const Variable &expr, ExprPtr exprPtr)
+{
+    if (!scopes.empty()) {
+        auto &scope = scopes.back();
+        auto it = scope.find(expr.name.lexeme);
+        // if declared but not yet defined → illegal read in its own init
+        if (it != scope.end() && !it->second)
+            Flint::error(expr.name,
+                "Cannot read local variable '" + expr.name.lexeme +
+                "' in its own initializer.");
+    }
+    resolveLocal(exprPtr, expr.name);
 }
 
 // Binary expr: resolve subexpressions
@@ -242,6 +242,26 @@ void Resolver::operator()(const Super& expr, ExprPtr exprPtr)
         );
     
     resolveLocal(exprPtr, expr.keyword);
+}
+
+void Resolver::operator()(const Array& expr) 
+{
+    for (auto& element : expr.elements) {
+        resolve(element);
+    }
+}
+
+void Resolver::operator()(const GetIndex& expr) 
+{
+    resolve(expr.array);
+    resolve(expr.index);
+}
+
+void Resolver::operator()(const SetIndex& expr) 
+{
+    resolve(expr.array);
+    resolve(expr.index);
+    resolve(expr.value);
 }
 
 // resolveLocal: find the nearest scope containing the name and tell

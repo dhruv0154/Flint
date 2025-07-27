@@ -65,6 +65,9 @@ struct Get;
 struct Set;
 struct This;
 struct Super;
+struct Array;
+struct GetIndex;
+struct SetIndex;
 
 // ─────────────────────────────────────────────────────────────
 //  ExpressionNode
@@ -85,7 +88,10 @@ using ExpressionNode = std::variant<
     Get,
     Set,
     This,
-    Super
+    Super,
+    Array,
+    GetIndex,
+    SetIndex
 >;
 
 // ─────────────────────────────────────────────────────────────
@@ -249,4 +255,26 @@ struct Super {
     Token method;
 
     Super(Token keyword, Token method) : keyword(keyword), method(method) {}
+};
+
+struct Array {
+    std::vector<ExprPtr> elements;
+
+    Array(std::vector<ExprPtr> elements) : elements(std::move(elements)) {}
+};
+
+struct GetIndex {
+    ExprPtr array, index;
+    Token bracket;
+
+    GetIndex(ExprPtr array, ExprPtr index, Token bracket) : array(std::move(array)), 
+    index(std::move(index)), bracket(bracket) {}
+};
+
+struct SetIndex {
+    ExprPtr array, index, value;
+    Token bracket;
+
+    SetIndex(ExprPtr array, ExprPtr index, ExprPtr value, Token bracket) : array(std::move(array)), 
+    index(std::move(index)), value(std::move(value)), bracket(bracket) {}
 };

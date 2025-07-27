@@ -1,19 +1,25 @@
-class A {
-  method() {
-    print ("A method");
+func main() {
+  print("How many numbers will you enter? ");
+  let n = scan();         // e.g. you type 5
+
+  // Pre‑declare an array of length n (here, 5 zeros)
+  // You must literally write the right number of zeros:
+  let nums = [0, 0, 0, 0, 0];
+
+  let i = 0;
+  while (i < n) {
+    print("Element ", i, ": ");
+    let v = scan();
+    nums[i] = v;
+    i = i + 1;
+  }
+
+  print("\nResult:\n");
+  i = 0;
+  while (i < n) {
+    print(nums[i], "\n");
+    i = i + 1;
   }
 }
 
-class B < A {
-  method() {
-    print ("B method");
-  }
-
-  test() {
-    super.method();
-  }
-}
-
-class C < B {}
-
-C().test();
+main();

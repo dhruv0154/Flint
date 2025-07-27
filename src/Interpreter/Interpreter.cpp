@@ -1,6 +1,7 @@
 #include <chrono>
 #include "Flint/Interpreter/Interpreter.h"
 #include "Flint/Flint.h"
+#include "Flint/Parser/Value.h"
 #include "Flint/ASTNodes/ExpressionNode.h"
 #include "Flint/Exceptions/BreakException.h"
 #include "Flint/Exceptions/ContinueException.h"

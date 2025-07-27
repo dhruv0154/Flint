@@ -50,6 +50,9 @@ public:
     void operator()(const Set& expr);                          // Resolves property assignments (obj.prop = value)
     void operator()(const This& expr, ExprPtr exprPtr);        // Resolves 'this' keyword inside classes
     void operator()(const Super& expr, ExprPtr exprPtr);       // Resolves 'super' keyword inside classes
+    void operator()(const Array& expr);
+    void operator()(const GetIndex& expr);
+    void operator()(const SetIndex& expr);
 
     // === Entry Points for Resolution ===
 

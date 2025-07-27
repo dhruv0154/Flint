@@ -72,6 +72,9 @@ public:
     // Handle 'super' keyword to reference the super class.
     LiteralValue operator()(const Super& expr, ExprPtr exprPtr) const;
 
+    LiteralValue operator()(const Array& expr) const;
+    LiteralValue operator()(const GetIndex& expr) const;
+    LiteralValue operator()(const SetIndex& expr) const;
     //──────────────────────────────────────────────────────────────────────────
     // Evaluation Helpers
     //──────────────────────────────────────────────────────────────────────────
