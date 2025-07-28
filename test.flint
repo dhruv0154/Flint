@@ -1,25 +1,73 @@
-func main() {
-  print("How many numbers will you enter? ");
-  let n = scan();         // e.g. you type 5
+// ─────────────────────────────────────────────────────────────────────────────
+// Mixed Array & String Method Showcase
+// ─────────────────────────────────────────────────────────────────────────────
 
-  // Pre‑declare an array of length n (here, 5 zeros)
-  // You must literally write the right number of zeros:
-  let nums = [0, 0, 0, 0, 0];
+// 1. Array methods: length, push, pop, indexing, assignment
+let arr = ["foo", "bar"];
+print("Initial arr: ", arr, "\n");
 
-  let i = 0;
-  while (i < n) {
-    print("Element ", i, ": ");
-    let v = scan();
-    nums[i] = v;
-    i = i + 1;
-  }
+print("arr.length = ", arr.length, "\n");
 
-  print("\nResult:\n");
-  i = 0;
-  while (i < n) {
-    print(nums[i], "\n");
-    i = i + 1;
-  }
+arr.push("baz");
+print("After arr.push(\"baz\"): ", arr, "\n");
+
+let popped = arr.pop();
+print("arr.pop() returned: ", popped, "\n");
+print("Arr now: ", arr, "\n");
+
+// Indexed assignment
+arr[1] = "qux";
+print("After arr[1] = \"qux\": ", arr, "\n");
+
+// Indexed access
+print("arr[0] = ", arr[0], "\n\n");
+
+
+// 2. Nested arrays + mixed types
+let nested = [1, ["a", "b"], true, nothing];
+print("Nested array: ", nested, "\n");
+print("nested[1][0] = ", nested[1][0], ", nested[2] = ", nested[2], "\n\n");
+
+
+// 3. String methods: length, upper, lower, push, pop, indexing
+let s = "Flint";
+print("Original s: ", s, "\n");
+
+print("s.length = ", s.length, "\n");
+print("s.upper() = ", s.upper(), "\n");
+print("s.lower() = ", s.lower(), "\n");
+
+print("s[2] = ", s[2], "\n");
+
+let s2 = s.push("Lang");
+print("s.push(\"Lang\") = ", s2, "\n");
+print("Original s still = ", s, "\n");
+
+let lastChar = s.pop();
+print("s.pop() = ", lastChar, "\n");
+print("After pop, s still = ", s, "\n\n");
+
+
+// 4. Combination: build an array of transformed strings
+let words = ["alpha", "beta", "gamma"];
+print("Words: ", words, "\n");
+
+let caps = [];  
+for (let i = 0; i < words.length; i = i + 1) {
+  caps.push(words[i].upper());
 }
+print("Uppercased: ", caps, "\n");
 
-main();
+caps.pop();
+print("After pop: ", caps, "\n");
+
+// 5. Edge‑cases
+let emptyArr = [];
+print("emptyArr.length = ", emptyArr.length, "\n");
+// emptyArr.pop();  // would RuntimeError
+emptyArr.push("only");
+print("emptyArr after push: ", emptyArr, "\n\n");
+
+let emptyStr = "";
+print("emptyStr.length = ", emptyStr.length, "\n");
+print("emptyStr.pop() = '", emptyStr.pop(), "'\n");  // returns ""

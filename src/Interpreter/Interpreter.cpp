@@ -12,6 +12,7 @@
 #include "Flint/Exceptions/ReturnException.h"
 #include "Flint/Callables/Classes/FlintClass.h"
 #include "Flint/Callables/Classes/FlintInstance.h"
+#include "Flint/FlintArray.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Global Interpreter State
@@ -104,6 +105,41 @@ Interpreter::Interpreter()
         },
         "toString"
     ));
+
+
+    globals->define("ord", std::make_shared<NativeFunction>(
+    1,
+    [](const std::vector<LiteralValue>& args, const Token& paren) -> LiteralValue {
+        if (!std::holds_alternative<std::string>(args[0])) {
+            throw RuntimeError(paren, "ord() expects a string argument.");
+        }
+
+        const std::string& str = std::get<std::string>(args[0]);
+        if (str.length() != 1) {
+            throw RuntimeError(paren, "ord() expects a single character string.");
+        }
+
+        return static_cast<double>(static_cast<unsigned char>(str[0]));
+    },
+    "ord"
+    ));
+
+    globals->define("chr", std::make_shared<NativeFunction>(
+    1,
+    [](const std::vector<LiteralValue>& args, const Token& paren) -> LiteralValue {
+        if (!std::holds_alternative<double>(args[0])) {
+            throw RuntimeError(paren, "chr() expects a number.");
+        }
+
+        int code = static_cast<int>(std::get<double>(args[0]));
+        if (code < 0 || code > 255) {
+            throw RuntimeError(paren, "chr() argument must be in range 0–255.");
+        }
+
+        return std::string(1, static_cast<char>(code));
+    },
+    "chr"
+    ));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -195,7 +231,10 @@ std::string Interpreter::stringify(const LiteralValue& obj)
         }
         else if constexpr (std::is_same_v<T, std::shared_ptr<FlintInstance>>) {
             return val -> toString();  // call custom string method on class
-        } 
+        }
+        else if constexpr (std::is_same_v<T, std::shared_ptr<FlintArray>>) {
+            return val -> toString();
+        }
         else {
             return "<unknown>";
         }

@@ -95,6 +95,8 @@ public:
     // Compare two values for equality (handles numeric and other types).
     bool isEqual(const LiteralValue& left, const LiteralValue& right) const;
 
+    std::string getMethodName(const ExprPtr& callee) const;
+
     // Enforce that operands match expected types (e.g., numbers for +).
     template<typename... Operands>
     void checkOperandType(const Token& op, const Operands&... operands) const;

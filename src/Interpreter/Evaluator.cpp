@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "Flint/Interpreter/Evaluator.h"
 #include "Flint/ASTNodes/Stmt.h"
 #include "Flint/Interpreter/Interpreter.h"
@@ -7,6 +8,7 @@
 #include "Flint/Callables/Classes/FlintInstance.h"
 #include "Flint/Callables/Classes/FlintClass.h"
 #include "Flint/FlintArray.h"
+#include "Flint/Callables/Functions/BuiltInFunction.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Binary Expression Evaluation
@@ -227,21 +229,94 @@ LiteralValue Evaluator::operator()(const Call& expr) const
 LiteralValue Evaluator::operator()(const Get& expr) const
 {
     LiteralValue val = evaluate(expr.object);
-    if(std::holds_alternative<std::shared_ptr<FlintCallable>>(val))
-    {
-        std::shared_ptr<FlintClass> classPtr =
-        std::dynamic_pointer_cast<FlintClass>(std::get<std::shared_ptr<FlintCallable>>(val));
-        if(classPtr)
-        {
-            return classPtr -> get(expr.name, interpreter);
+
+    // Handle string properties and methods
+    if (auto strPtr = std::get_if<std::string>(&val)) {
+        if (expr.name.lexeme == "length") {
+            return static_cast<double>(strPtr->length());
+        }
+
+        if (expr.name.lexeme == "push") {
+            // capture the original string
+            std::string original = *strPtr;
+            return std::make_shared<BuiltinFunction>(
+              [original](Interpreter&, const std::vector<LiteralValue>& args, const Token& token) -> LiteralValue {
+                if (args.size() != 1 || !std::holds_alternative<std::string>(args[0]))
+                  throw RuntimeError(token, "push() on string takes exactly one string argument.");
+                const std::string& toAdd = std::get<std::string>(args[0]);
+                return original + toAdd;   // return new concatenated string
+              },
+            1);
+        }
+
+        if (expr.name.lexeme == "pop") {
+            std::string original = *strPtr;
+            return std::make_shared<BuiltinFunction>(
+              [original](Interpreter&, const std::vector<LiteralValue>& args, const Token& token) -> LiteralValue {
+                if (!args.empty())
+                  throw RuntimeError(token, "pop() on string takes no arguments.");
+                if (original.empty())
+                  return std::string("");   // or throw if you prefer
+                return std::string(1, original.back());
+              },
+            0);
+        }
+        // Add support for accessing string methods like upper and lower
+        if (expr.name.lexeme == "upper") {
+            std::string valCopy = *strPtr; // force capture the string by value
+            return std::make_shared<BuiltinFunction>([valCopy](Interpreter&, const std::vector<LiteralValue>&, const Token&) {
+                std::string upperStr = valCopy;
+                std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(), ::toupper);
+                return upperStr;
+            }, 0);
+        }
+        if (expr.name.lexeme == "lower") {
+            std::string valCopy = *strPtr; // force capture the string by value
+            return std::make_shared<BuiltinFunction>([valCopy](Interpreter&, const std::vector<LiteralValue>&, const Token&) {
+                std::string lowerStr = valCopy;
+                std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+                return lowerStr;
+            }, 0);
         }
     }
-    else if(std::holds_alternative<std::shared_ptr<FlintInstance>>(val))
-    {
-        return std::get<std::shared_ptr<FlintInstance>>(val) -> get(expr.name, interpreter);
+
+    // Handle array properties and methods
+    if (auto arrPtr = std::get_if<std::shared_ptr<FlintArray>>(&val)) {
+        if (expr.name.lexeme == "length") {
+            return static_cast<double>((*arrPtr)->elements.size());
+        }
+        if (expr.name.lexeme == "push") {
+            auto arrayCopy = *arrPtr;
+            return std::make_shared<BuiltinFunction>([arrayCopy](Interpreter&, const std::vector<LiteralValue>& args, const Token& token) {
+                if (args.size() != 1)
+                    throw RuntimeError(token, "push() takes exactly one argument.");
+                (arrayCopy)->elements.push_back(args[0]);
+                return nullptr;
+            }, 1);
+        }
+        if (expr.name.lexeme == "pop") {
+            auto arrayCopy = *arrPtr;
+            return std::make_shared<BuiltinFunction>([arrayCopy](Interpreter&, const std::vector<LiteralValue>&, const Token& token) {
+                if (arrayCopy->elements.empty())
+                    throw RuntimeError(token, "Cannot pop from empty array.");
+                auto val = arrayCopy->elements.back();
+                arrayCopy->elements.pop_back();
+                return val;
+            }, 0);
+        }
     }
 
-    throw RuntimeError(expr.name, "Only instances have properties.");
+    // Object/class/instance property access
+    if (std::holds_alternative<std::shared_ptr<FlintCallable>>(val)) {
+        auto classPtr = std::dynamic_pointer_cast<FlintClass>(std::get<std::shared_ptr<FlintCallable>>(val));
+        if (classPtr)
+            return classPtr->get(expr.name, interpreter);
+    }
+    else if (std::holds_alternative<std::shared_ptr<FlintInstance>>(val)) {
+        return std::get<std::shared_ptr<FlintInstance>>(val)->get(expr.name, interpreter);
+    }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+    throw RuntimeError(expr.name, "Only instances, strings, or arrays have properties.");
 }
 
 LiteralValue Evaluator::operator()(const Set& expr) const
@@ -375,6 +450,13 @@ bool Evaluator::isTruthy(const LiteralValue& value) const
     };
 
     return std::visit(visitor, value);
+}
+
+std::string Evaluator::getMethodName(const ExprPtr& callee) const {
+    if (auto getExpr = std::get_if<Get>(callee.get())) {
+        return getExpr->name.lexeme;
+    }
+    throw std::runtime_error("Method call is not in the expected format.");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
