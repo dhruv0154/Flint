@@ -43,6 +43,7 @@ int main(int argc, char const *argv[])
 {
     if (argc > 1)
     {
+        std::cout << "running file.. " << argv[1] << std::endl;
         Flint::runFile(argv[1]);
     }
     else
