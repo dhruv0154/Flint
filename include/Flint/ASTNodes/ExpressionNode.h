@@ -162,7 +162,7 @@ struct Unary {
 };
 
 // ─────────────────────────────────────────────────────────────
-//  Literal: number, string, bool, or nil
+//  Literal: number, bool, or nil
 // ─────────────────────────────────────────────────────────────
 struct Literal {
     LiteralValue value;  // holds actual runtime value

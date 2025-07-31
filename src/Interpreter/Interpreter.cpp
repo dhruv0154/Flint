@@ -13,6 +13,7 @@
 #include "Flint/Callables/Classes/FlintClass.h"
 #include "Flint/Callables/Classes/FlintInstance.h"
 #include "Flint/FlintArray.h"
+#include "Flint/FlintString.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Global Interpreter State
@@ -110,11 +111,11 @@ Interpreter::Interpreter()
     globals->define("ord", std::make_shared<NativeFunction>(
     1,
     [](const std::vector<LiteralValue>& args, const Token& paren) -> LiteralValue {
-        if (!std::holds_alternative<std::string>(args[0])) {
+        if (!std::holds_alternative<std::shared_ptr<FlintString>>(args[0])) {
             throw RuntimeError(paren, "ord() expects a string argument.");
         }
 
-        const std::string& str = std::get<std::string>(args[0]);
+        const std::string& str = std::get<std::shared_ptr<FlintString>>(args[0]) -> value;
         if (str.length() != 1) {
             throw RuntimeError(paren, "ord() expects a single character string.");
         }
@@ -234,6 +235,9 @@ std::string Interpreter::stringify(const LiteralValue& obj)
         }
         else if constexpr (std::is_same_v<T, std::shared_ptr<FlintArray>>) {
             return val -> toString();
+        }
+        else if constexpr (std::is_same_v<T, std::shared_ptr<FlintString>>) {
+            return val -> value;
         }
         else {
             return "<unknown>";

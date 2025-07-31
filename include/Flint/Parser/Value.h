@@ -23,13 +23,15 @@ class FlintCallable;
 class FlintClass;
 class FlintInstance;
 class FlintArray;
+class FlintString;
 
 
 // LiteralValue variant holds all primitive and object types:
 using LiteralValue = std::variant<
     std::monostate,                // Default uninitialized state, signals absence of value
     double,                        // Floating-point numeric literals (e.g., 3.14)
-    std::string,                   // String literals (e.g., "hello world")
+    std::string,
+    std::shared_ptr<FlintString>,  // String literals (e.g., "hello world")
     std::nullptr_t,                // ‘nothing’ keyword (null/nil equivalent)
     bool,                          // Boolean literals: true or false
     std::shared_ptr<FlintCallable>,// Functions or native-callable objects

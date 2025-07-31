@@ -1,73 +1,173 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Mixed Array & String Method Showcase
-// ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────
+// Flint Test Suite: corrected combined cases in one go
+// Expected outputs are in comments after each snippet
+// ─────────────────────────────────────────────────────────────────
 
-// 1. Array methods: length, push, pop, indexing, assignment
-let arr = ["foo", "bar"];
-print("Initial arr: ", arr, "\n");
+// Test 1: Variables, arithmetic, print
+let a = 7;
+let b = a * 3 + 2;
+print("Test 1 → b = "); print(b); print("\n");
+// Expected: Test 1 → b = 23
 
-print("arr.length = ", arr.length, "\n");
-
-arr.push("baz");
-print("After arr.push(\"baz\"): ", arr, "\n");
-
-let popped = arr.pop();
-print("arr.pop() returned: ", popped, "\n");
-print("Arr now: ", arr, "\n");
-
-// Indexed assignment
-arr[1] = "qux";
-print("After arr[1] = \"qux\": ", arr, "\n");
-
-// Indexed access
-print("arr[0] = ", arr[0], "\n\n");
-
-
-// 2. Nested arrays + mixed types
-let nested = [1, ["a", "b"], true, nothing];
-print("Nested array: ", nested, "\n");
-print("nested[1][0] = ", nested[1][0], ", nested[2] = ", nested[2], "\n\n");
-
-
-// 3. String methods: length, upper, lower, push, pop, indexing
-let s = "Flint";
-print("Original s: ", s, "\n");
-
-print("s.length = ", s.length, "\n");
-print("s.upper() = ", s.upper(), "\n");
-print("s.lower() = ", s.lower(), "\n");
-
-print("s[2] = ", s[2], "\n");
-
-let s2 = s.push("Lang");
-print("s.push(\"Lang\") = ", s2, "\n");
-print("Original s still = ", s, "\n");
-
-let lastChar = s.pop();
-print("s.pop() = ", lastChar, "\n");
-print("After pop, s still = ", s, "\n\n");
-
-
-// 4. Combination: build an array of transformed strings
-let words = ["alpha", "beta", "gamma"];
-print("Words: ", words, "\n");
-
-let caps = [];  
-for (let i = 0; i < words.length; i = i + 1) {
-  caps.push(words[i].upper());
+// Test 2: if/else, comparison, ternary
+let x = 10;
+if (x > 5) {
+  print("Test 2 → x>5\n");
+} else {
+  print("Test 2 → x<=5\n");
 }
-print("Uppercased: ", caps, "\n");
+print("Ternary: "); print(x < 0 ? "neg" : "pos"); print("\n");
+// Expected:
+// Test 2 → x>5
+// Ternary: pos
 
-caps.pop();
-print("After pop: ", caps, "\n");
+// Test 3: while, break, continue
+let i = 0;
+while (i < 5) {
+  i = i + 1;
+  if (i == 3) continue;
+  if (i == 5) break;
+  print(i); print(" ");
+}
+print("\n");
+// Expected: 1 2 4
 
-// 5. Edge‑cases
-let emptyArr = [];
-print("emptyArr.length = ", emptyArr.length, "\n");
-// emptyArr.pop();  // would RuntimeError
-emptyArr.push("only");
-print("emptyArr after push: ", emptyArr, "\n\n");
+// Test 4: for‑loop, array push/pop/length()
+let arr = [1, 2, 3];
+for (let j = 0; j < 2; j = j + 1) {
+  arr.push(j * 10);
+}
+print("Test 4 → arr.length() = "); print(arr.length()); print("\n");
+print("Contents: ");
+for (let k = 0; k < arr.length(); k = k + 1) {
+  print(arr[k]); print(" ");
+}
+print("\n");
+let popped = arr.pop();
+print("Popped: "); print(popped); print("\n");
+print("After pop, length() = "); print(arr.length()); print("\n");
+// Expected:
+// Test 4 → arr.length() = 5
+// Contents: 1 2 3 0 10
+// Popped: 10
+// After pop, length() = 4
 
-let emptyStr = "";
-print("emptyStr.length = ", emptyStr.length, "\n");
-print("emptyStr.pop() = '", emptyStr.pop(), "'\n");  // returns ""
+// Test 5: nested arrays
+let mat = [[1,2], [3,4]];
+print("mat[1][0] = "); print(mat[1][0]); print("\n");
+// Expected: mat[1][0] = 3
+
+// Test 6: string mutation and methods (length() only)
+let s = "FlintLang";
+print("Before: "); print(s); print("\n");
+s.upper();
+print("Upper:  "); print(s); print("\n");
+s.lower();
+print("Lower:  "); print(s); print("\n");
+print("Length: "); print(s.length()); print("\n");
+// Expected:
+// Before: FlintLang
+// Upper:  FLINTLANG
+// Lower:  flintlang
+// Length: 9
+
+// Test 7: string concatenation and indexing
+let hello = "Hello, ";
+let name = "World";
+let full = hello + name + "!";
+print("Test 7 → "); print(full); print("\n");
+print("full[7] = "); print(full[7]); print("\n");
+// Expected:
+// Test 7 → Hello, World!
+// full[7] = W
+
+// Test 8: functions, return, recursion
+func fact(n) {
+  if (n <= 1) return 1;
+  return n * fact(n - 1);
+}
+print("Test 8 → 6! = "); print(fact(6)); print("\n");
+// Expected: Test 8 → 6! = 720
+
+// Test 9: lambdas and closures
+let makeAdder = func(x) {
+  return func(y) { return x + y; };
+};
+let add5 = makeAdder(5);
+print("Test 9 → 5+8 = "); print(add5(8)); print("\n");
+// Expected: Test 9 → 5+8 = 13
+
+// Test 10: class, static & instance methods, inheritance
+class Animal {
+  speak()       { print("...\n"); }
+  class info()  { print("Animal base\n"); }
+}
+class Cat < Animal {
+  speak()       { print("meow\n"); }
+}
+Animal.info();
+let c = Cat();
+c.speak();
+// Expected:
+// Animal base
+// meow
+
+// Test 11: built‑ins: intDiv, ord, chr, toString
+print("intDiv(7,2)= "); print(intDiv(7,2)); print("\n");
+print("ord('A')= "); print(ord("A")); print("\n");
+print("chr(66)= "); print(chr(66)); print("\n");
+print("toString(100+23)= "); print(toString(100+23)); print("\n");
+// Expected:
+// intDiv(7,2)= 3
+// ord('A')= 65
+// chr(66)= B
+// toString(100+23)= 123
+
+// Test 12: native scan & clock (interactive/time‑based)
+// print("Enter a number: ");
+// let num = scan(">> ");
+// print("You entered: "); print(num); print("\n");
+// print("Epoch secs: "); print(clock()); print("\n");
+// Expected (example):
+// Enter a number: >> 42
+// You entered: 42
+// Epoch secs: 1701153845.123
+
+// Test 13: Mixed‐type array (ints, strings, nested arrays)
+let mixed = [42, "Answer", [1,2,3], "end"];
+print("Test 13 → mixed[0] = "); print(mixed[0]); print("\n");
+print("mixed[1] = "); print(mixed[1]); print("\n");
+print("mixed[2][2] = "); print(mixed[2][2]); print("\n");
+print("mixed[3] = "); print(mixed[3]); print("\n");
+// Expected:
+// Test 13 → mixed[0] = 42
+// mixed[1] = Answer
+// mixed[2][2] = 3
+// mixed[3] = end
+
+// Test 14: Heterogeneous push/pop
+mixed.push("new");
+mixed.push(99);
+print("After pushes, mixed.length() = "); print(mixed.length()); print("\n");
+print("Popped: "); print(mixed.pop()); print("\n");
+print("Now mixed.length() = "); print(mixed.length()); print("\n");
+// Expected:
+// After pushes, mixed.length() = 6
+// Popped: 99
+// Now mixed.length() = 5
+
+// Test 15: String + int concatenation
+let base = "Count: ";
+let number = 7;
+let combo = base + number;
+print("Test 15 → "); print(combo); print("\n");
+// Expected: Test 15 → Count: 7
+
+// Test 16: Complex expression with mixed array and string+int
+let report = ["Items: ", mixed.length(), ", Message: ", combo];
+print("Test 16 → ");
+for (let idx = 0; idx < report.length(); idx = idx + 1) {
+  print(report[idx]);
+}
+print("\n");
+// Expected: Test 16 → Items: 5, Message: Count: 7

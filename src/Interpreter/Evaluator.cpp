@@ -9,6 +9,7 @@
 #include "Flint/Callables/Classes/FlintClass.h"
 #include "Flint/FlintArray.h"
 #include "Flint/Callables/Functions/BuiltInFunction.h"
+#include "Flint/FlintString.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Binary Expression Evaluation
@@ -31,7 +32,8 @@ LiteralValue Evaluator::operator()(const Binary& expr) const
             if(std::holds_alternative<double>(left) && std::holds_alternative<double>(right))
                 return std::get<double>(left) + std::get<double>(right);
             // If either is a string, convert both to strings and concatenate
-            else if (std::holds_alternative<std::string>(left) || std::holds_alternative<std::string>(right))
+            else if (std::holds_alternative<std::shared_ptr<FlintString>>(left) || 
+            std::holds_alternative<std::shared_ptr<FlintString>>(right))
                 return Interpreter::stringify(left) + Interpreter::stringify(right);
 
             message = "Operands to '+' must be both numbers or at least one string.";;
@@ -153,6 +155,10 @@ LiteralValue Evaluator::operator()(const Unary& expr) const
 // ─────────────────────────────────────────────────────────────────────────────
 LiteralValue Evaluator::operator()(const Literal& expr) const 
 {
+    if(auto strPtr = std::get_if<std::string>(&expr.value))
+    {
+        return std::make_shared<FlintString>(*strPtr);
+    }
     return expr.value;
 }
 
@@ -231,79 +237,13 @@ LiteralValue Evaluator::operator()(const Get& expr) const
     LiteralValue val = evaluate(expr.object);
 
     // Handle string properties and methods
-    if (auto strPtr = std::get_if<std::string>(&val)) {
-        if (expr.name.lexeme == "length") {
-            return static_cast<double>(strPtr->length());
-        }
-
-        if (expr.name.lexeme == "push") {
-            // capture the original string
-            std::string original = *strPtr;
-            return std::make_shared<BuiltinFunction>(
-              [original](Interpreter&, const std::vector<LiteralValue>& args, const Token& token) -> LiteralValue {
-                if (args.size() != 1 || !std::holds_alternative<std::string>(args[0]))
-                  throw RuntimeError(token, "push() on string takes exactly one string argument.");
-                const std::string& toAdd = std::get<std::string>(args[0]);
-                return original + toAdd;   // return new concatenated string
-              },
-            1);
-        }
-
-        if (expr.name.lexeme == "pop") {
-            std::string original = *strPtr;
-            return std::make_shared<BuiltinFunction>(
-              [original](Interpreter&, const std::vector<LiteralValue>& args, const Token& token) -> LiteralValue {
-                if (!args.empty())
-                  throw RuntimeError(token, "pop() on string takes no arguments.");
-                if (original.empty())
-                  return std::string("");   // or throw if you prefer
-                return std::string(1, original.back());
-              },
-            0);
-        }
-        // Add support for accessing string methods like upper and lower
-        if (expr.name.lexeme == "upper") {
-            std::string valCopy = *strPtr; // force capture the string by value
-            return std::make_shared<BuiltinFunction>([valCopy](Interpreter&, const std::vector<LiteralValue>&, const Token&) {
-                std::string upperStr = valCopy;
-                std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(), ::toupper);
-                return upperStr;
-            }, 0);
-        }
-        if (expr.name.lexeme == "lower") {
-            std::string valCopy = *strPtr; // force capture the string by value
-            return std::make_shared<BuiltinFunction>([valCopy](Interpreter&, const std::vector<LiteralValue>&, const Token&) {
-                std::string lowerStr = valCopy;
-                std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
-                return lowerStr;
-            }, 0);
-        }
+    if (auto strPtr = std::get_if<std::shared_ptr<FlintString>>(&val)) {
+        return strPtr -> get() -> getInBuiltFunction(expr.name);
     }
 
     // Handle array properties and methods
     if (auto arrPtr = std::get_if<std::shared_ptr<FlintArray>>(&val)) {
-        if (expr.name.lexeme == "length") {
-            return static_cast<double>((*arrPtr)->elements.size());
-        }
-        if (expr.name.lexeme == "push") {
-            auto arrayCopy = *arrPtr;
-            return std::make_shared<BuiltinFunction>([arrayCopy](Interpreter&, const std::vector<LiteralValue>& args, const Token& token) {
-                if (args.size() != 1)
-                    throw RuntimeError(token, "push() takes exactly one argument.");
-                (arrayCopy)->elements.push_back(args[0]);
-                return nullptr;
-            }, 1);
-        }
-        if (expr.name.lexeme == "pop") {
-            auto arrayCopy = *arrPtr;
-            return std::make_shared<BuiltinFunction>([arrayCopy](Interpreter&, const std::vector<LiteralValue>&, const Token& token) {
-                if (arrayCopy->elements.empty())
-                    throw RuntimeError(token, "Cannot pop from empty array.");
-                auto val = arrayCopy->elements.back();
-                arrayCopy->elements.pop_back();
-                return val;
-            }, 0);
-        }
+        return arrPtr -> get() -> getInBuiltFunction(expr.name);
     }
 
     // Object/class/instance property access

@@ -1,16 +1,19 @@
 #pragma once
 
 #include <vector>
+#include <unordered_map>
+#include <string>
 #include "Flint/Parser/Value.h"
+#include "Flint/Callables/Functions/BuiltInFunction.h"
 #include "Flint/Interpreter/Interpreter.h"
 
 class FlintArray {
+private:
+    std::unordered_map<std::string, std::shared_ptr<BuiltinFunction>> builtInFunctions;
+
 public:
     // Underlying storage
     std::vector<LiteralValue> elements;
-
-    // Construct an empty array
-    FlintArray() = default;
 
     std::string toString()  {
        std::string out = "[";
@@ -22,7 +25,7 @@ public:
         return out;
     }
 
-    // Construct with initial elements
-    explicit FlintArray(std::vector<LiteralValue> elems)
-        : elements(std::move(elems)) {}
+    LiteralValue getInBuiltFunction(Token name);
+
+    FlintArray(std::vector<LiteralValue> elems);
 };
