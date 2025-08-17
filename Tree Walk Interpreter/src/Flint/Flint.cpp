@@ -62,13 +62,11 @@ int main(int argc, char const *argv[])
 // ─────────────────────────────────────────────────────────────────────────────
 void Flint::runFile(const std::string& path)
 {
-    std::ifstream file(path, std::ios_base::binary);
-
-    if (!file)
-    {
-        throw std::ios_base::failure("Could not read file: " + path);
+    std::ifstream file(path, std::ios::binary);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open source file: " << path << "\n";
+        exit(74);
     }
-
     std::stringstream buffer;
     buffer << file.rdbuf(); // Read entire file into buffer
     std::string source = buffer.str();

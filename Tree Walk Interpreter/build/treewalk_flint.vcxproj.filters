@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Flint\Environment.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Flint\Flint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Flint\FlintArray.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Flint\FlintClass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Flint\FlintFunction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Flint\FlintInstance.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Flint\FlintString.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Interpreter\Evaluator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Interpreter\Interpreter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Interpreter\Resolver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Parser\Parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Scanner\Scanner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\src\Scanner\Token.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\Downloads\C++\Flint\Tree Walk Interpreter\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{F17C9403-5ECD-376B-895D-F766916B96BF}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

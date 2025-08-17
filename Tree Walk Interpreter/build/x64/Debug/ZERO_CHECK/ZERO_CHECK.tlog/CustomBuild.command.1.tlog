@@ -1,0 +1,10 @@
+^D:\DOWNLOADS\C++\FLINT\TREE WALK INTERPRETER\BUILD\CMAKEFILES\668761D9D3FF72455F26137CEE58DD08\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SD:/Downloads/C++/Flint/Tree Walk Interpreter" "-BD:/Downloads/C++/Flint/Tree Walk Interpreter/build" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "D:/Downloads/C++/Flint/Tree Walk Interpreter/build/TreeWalkFlint.sln"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
