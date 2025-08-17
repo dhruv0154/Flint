@@ -1,0 +1,17 @@
+# Ignore all text files
+*.txt
+
+# Ignore VSCode settings
+.vscode/
+
+# Ignore batch files
+*.bat
+
+# Ignore build output
+build/
+Tree Walk Interpreter/build/
+
+# Ignore compiled binaries anywhere
+*.o
+*.out
+*.exe
