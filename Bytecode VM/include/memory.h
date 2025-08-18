@@ -1,39 +1,32 @@
 #pragma once
-
+#include <algorithm>
 #include <cstdlib>
 #include "common.h"
 
-class Memory
-{
-private:
-    template <typename T>
-    static T* reallocate(T* pointer, size_t oldSize, size_t newSize) {
-        if (newSize == 0) {
-            std::free(pointer);
-            return nullptr;
-        }
-        T* result = static_cast<T*>(std::realloc(pointer, newSize));
-        if(result == nullptr) exit(1);
-        return result;
-    }
-
+class Memory {
 public:
     static inline int growCapacity(int capacity) { 
         return (capacity < 8) ? 8 : capacity * 2; 
     }
-    
+
     template <typename T>
     static T* growArray(T* pointer, size_t oldCount, size_t newCount) {
-        return static_cast<T*>
-            (reallocate(
-                pointer, sizeof(T) * oldCount, 
-                sizeof(T) * newCount));
+        // Allocate new memory with constructors
+        T* result = new T[newCount];
+
+        // Copy over existing elements
+        for (size_t i = 0; i < oldCount && i < newCount; i++) {
+            result[i] = pointer[i];
+        }
+
+        // Free old memory
+        delete[] pointer;
+
+        return result;
     }
 
     template <typename T>
-    static T* freeArray(T* pointer, size_t oldCount) {
-        return static_cast<T*>
-            (reallocate(pointer, sizeof(T) * oldCount, 0));
+    static void freeArray(T* pointer) {
+        delete[] pointer;
     }
-
 };
