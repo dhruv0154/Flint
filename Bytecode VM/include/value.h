@@ -19,7 +19,7 @@ public:
     ValueArray& operator=(ValueArray&&) = delete;
     
     void writeValueArray(Value val);
-    void printValue(Value val);
+    static void printValue(Value val);
     int getCount() { return count; }
     int getCapacity() { return capacity; }
     Value* getValues() { return values; }

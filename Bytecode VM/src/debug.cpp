@@ -48,7 +48,7 @@ int Disassembler::constantInstruction(const char* name, Chunk* chunk, int offset
     << std::right << std::setw(4) << (int)constantIndex << " '";
 
     ValueArray& constants = chunk -> getConstants();
-    constants.printValue(constants.getValues()[constantIndex]);
+    ValueArray::printValue(constants.getValues()[constantIndex]);
     std::cout << "'\n";
     return offset + 2;
 }
@@ -64,7 +64,7 @@ int Disassembler::longConstantInstruction(const char* name, Chunk* chunk, int of
     << std::right << std::setw(4) << (int)constantIndex << " '";
 
     ValueArray& constants = chunk -> getConstants();
-    constants.printValue(constants.getValues()[constantIndex]);
+    ValueArray::printValue(constants.getValues()[constantIndex]);
     std::cout << "'\n";
 
     return offset + 4;
