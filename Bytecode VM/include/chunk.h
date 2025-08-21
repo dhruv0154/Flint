@@ -18,17 +18,11 @@ struct LineStart {
 class Chunk
 {
 private:
-    int capacity;
-    int count;
-    uint8_t* code;
-
-    int lineCount;
-    int lineCapacity;
-    LineStart* lines;
+    DynamicArray<uint8_t> code;
+    DynamicArray<LineStart> lines;
     ValueArray constants;
 public:
-    Chunk() : count(0), capacity(0), 
-        code(nullptr), lines(nullptr), lineCount(0), lineCapacity(0), constants() {}
+    Chunk() = default;
     Chunk(const Chunk&) = delete;
     Chunk& operator=(const Chunk&) = delete;
     Chunk(Chunk&&) = delete;
@@ -38,14 +32,8 @@ public:
     void writeConstant(Value val, int line);
     int addConstant(Value val);
     int getLine(int instruction);
-    int getCount() { return count; }
-    int getCapacity() { return capacity; }
+    int getCount() { return code.size(); }
     ValueArray& getConstants() { return constants; }
-    LineStart* getLines() { return lines; }
-    uint8_t* getCode() { return code; }
-
-    ~Chunk() { 
-        Memory::freeArray(code); 
-        Memory::freeArray(lines);
-    }
+    DynamicArray<LineStart>& getLines() { return lines; }
+    DynamicArray<uint8_t>& getCode() { return code; }
 };

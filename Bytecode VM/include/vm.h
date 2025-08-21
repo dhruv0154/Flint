@@ -2,6 +2,8 @@
 
 #include "chunk.h"
 
+#define STACK_MAX 256
+
 enum class InterpretResult
 { 
     INTERPRET_OK,
@@ -14,9 +16,11 @@ class VM
 private:
     Chunk* chunk;
     uint8_t* ip;
+    Value stack[STACK_MAX];
+    Value* stackTop;
     InterpretResult run();
 public:
-    VM();
+    VM() = default;
     InterpretResult interpret(Chunk* chunk);
-    ~VM();
+    ~VM() = default;
 };

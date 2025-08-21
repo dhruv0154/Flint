@@ -2,27 +2,12 @@
 
 void Chunk::writeChunk(uint8_t byte, int line)
 {
-    if(capacity < count + 1)
-    {
-        int oldCapacity = capacity;
-        capacity = Memory::growCapacity(oldCapacity);
-        code = Memory::growArray(code, oldCapacity, capacity);
-    }
-    code[count] = byte;
+    code.push_back(byte);
 
-    if(lineCount <= 0 || lines[lineCount - 1].line != line)
+    if(lines.size() <= 0 || lines[lines.size() - 1].line != line)
     {
-        if(lineCapacity < lineCount + 1)
-        {
-            int oldCapacity = lineCapacity;
-            lineCapacity = Memory::growCapacity(oldCapacity);
-            lines = Memory::growArray(lines, oldCapacity, lineCapacity);
-        }
-        lines[lineCount].line = line;
-        lines[lineCount].offset = count;
-        lineCount++;
+        lines.push_back({ line, static_cast<int>(code.size() - 1)});
     }
-    count++;
 }
 
 void Chunk::writeConstant(Value val, int line)
@@ -46,7 +31,7 @@ void Chunk::writeConstant(Value val, int line)
 
 int Chunk::getLine(int instruction) 
 {
-    for (int i = lineCount - 1; i >= 0; i--) 
+    for (int i = lines.size() - 1; i >= 0; i--) 
     {
         if (instruction >= lines[i].offset) {
             return lines[i].line;
@@ -57,6 +42,6 @@ int Chunk::getLine(int instruction)
 
 int Chunk::addConstant(Value val)
 {
-    constants.writeValueArray(val);
-    return constants.getCount() - 1;    
+    constants.push_back(val);
+    return constants.size() - 1;    
 }
