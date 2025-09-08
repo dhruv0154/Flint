@@ -33,8 +33,20 @@ LiteralValue Evaluator::operator()(const Binary& expr) const
                 return std::get<double>(left) + std::get<double>(right);
             // If either is a string, convert both to strings and concatenate
             else if (std::holds_alternative<std::shared_ptr<FlintString>>(left) || 
-            std::holds_alternative<std::shared_ptr<FlintString>>(right))
-                return Interpreter::stringify(left) + Interpreter::stringify(right);
+                std::holds_alternative<std::shared_ptr<FlintString>>(right))
+            {
+                // Convert left to string if it's not already
+                std::string lstr = std::holds_alternative<std::shared_ptr<FlintString>>(left) 
+                                   ? std::get<std::shared_ptr<FlintString>>(left)->value
+                                   : Interpreter::stringify(left);  // fallback to number, bool, etc.
+
+                // Convert right to string if it's not already
+                std::string rstr = std::holds_alternative<std::shared_ptr<FlintString>>(right) 
+                                   ? std::get<std::shared_ptr<FlintString>>(right)->value
+                                   : Interpreter::stringify(right);
+
+                return std::make_shared<FlintString>(lstr + rstr);
+            }
 
             message = "Operands to '+' must be both numbers or at least one string.";;
             throw RuntimeError(expr.op, message); 
