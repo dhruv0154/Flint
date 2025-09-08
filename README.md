@@ -46,7 +46,7 @@ Clone the repo
 
 Bash
 
-git clone https://github.com/[YOUR_USERNAME]/flint.git
+git clone https://github.com/dhruv0154/Flint.git
 Create a build directory
 
 Bash
