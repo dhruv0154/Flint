@@ -115,7 +115,7 @@ void Flint::run(const std::string& source)
 {
     auto scanner = std::make_unique<Scanner>(source);
     auto tokens  = scanner->scanTokens();
-    
+
     auto parser  = std::make_unique<Parser>(tokens);
     auto statements = parser->parse();
 
@@ -154,7 +154,7 @@ void Flint::error(Token token, const std::string& message)
 // Log runtime error (thrown by Interpreter or built-in functions)
 void Flint::runtimeError(RuntimeError error)
 {
-    std::cerr << "[line " << error.token.line << "] Runtime error: " << error.what() << std::endl;
+    std::cerr << "[line " << error.token.line << "] \033[31mRuntime error: \033[0m" << error.what() << std::endl;
     hadRuntimeError = true;
 }
 

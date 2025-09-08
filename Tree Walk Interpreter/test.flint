@@ -1,6 +1,25 @@
-func echo(n) {
-  print (n);
-  return n;
+class Animal
+{
+    speak()
+    {
+        print("From base class" + "\n");
+    }
 }
 
-print (echo(echo(1) + echo(2)) + echo(echo(4) + echo(5)));
+class Dog < Animal
+{
+    init(name)
+    {
+        this.name = name;
+        this.x = 0;
+    }
+    speak()
+    {
+        super.speak();
+        print(this.name + " says " + " woof" + "\n");
+    }
+}
+
+let scooby = Dog("Scooby");
+scooby.x = 10;
+scooby.speak();

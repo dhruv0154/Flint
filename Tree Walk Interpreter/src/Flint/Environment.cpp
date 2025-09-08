@@ -36,10 +36,10 @@ LiteralValue Environment::get(Token name)
     if (values.count(name.lexeme)) 
     {
         // Check if variable exists but is uninitialized
-        if(std::holds_alternative<nullptr_t>(values[name.lexeme]) 
+        if(std::holds_alternative<std::nullptr_t>(values[name.lexeme]) 
             || std::holds_alternative<std::monostate>(values[name.lexeme]))
         {
-            throw RuntimeError(name, "Variable '" + name.lexeme + "' has no value assigned to it.");
+            throw RuntimeError(name, "Variable '" + name.lexeme + "' is undefined \033[33m(just like your future)\033[0m");
         }
         return values[name.lexeme];
     }

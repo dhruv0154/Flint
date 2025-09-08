@@ -1,0 +1,26 @@
+expression → assignment ;
+assignment → IDENTIFIER "=" assignment | ternary ;
+ternary → equality ( "?" expression ":" ternary )? ;
+equality → comparison ( ( "!=" | "==" ) comparison )* ;
+comparison → addition ( ( ">" | ">=" | "<" | "<=" ) addition )* ;
+addition → multiplication ( ( "+" | "-" ) multiplication )* ;
+multiplication → unary ( ( "*" | "/" ) unary )* ;
+unary → ( "!" | "-" ) unary | call ;
+call → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
+arguments → expression ( "," expression )* ;
+primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER | "this" | "super" "." IDENTIFIER ;
+
+statement → exprStmt | printStmt | varDecl | block | ifStmt | whileStmt | forStmt | funcDecl | classDecl | returnStmt ;
+exprStmt → expression ";" ;
+printStmt → "print" expression ";" ;
+varDecl → "let" IDENTIFIER ( "=" expression )? ";" ;
+block → "{" statement* "}" ;
+ifStmt → "if" "(" expression ")" statement ( "else" statement )? ;
+whileStmt → "while" "(" expression ")" statement ;
+forStmt → "for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression? ")" statement ;
+returnStmt → "return" expression? ";" ;
+
+funcDecl → "fun" IDENTIFIER "(" parameters? ")" block ;
+parameters → IDENTIFIER ( "," IDENTIFIER )* ;
+
+classDecl → "class" IDENTIFIER ( ">" IDENTIFIER )? "{" funcDecl* "}" ;

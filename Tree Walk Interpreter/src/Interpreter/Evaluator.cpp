@@ -51,7 +51,7 @@ LiteralValue Evaluator::operator()(const Binary& expr) const
         case TokenType::SLASH:
             checkOperandType(expr.op, left, right);
             if (std::get<double>(right) == 0) {
-                message = "Division by zero is undefined.";
+                message = "divide by zero? seriously? who gave this kid a computer.";
                 throw RuntimeError(expr.op, message);
             }
             return std::get<double>(left) / std::get<double>(right);
@@ -59,7 +59,7 @@ LiteralValue Evaluator::operator()(const Binary& expr) const
         case TokenType::MODULO:
             checkOperandType(expr.op, left, right);
             if (std::get<double>(right) == 0) {
-                message = "Division by zero is undefined.";
+                message = "divide by zero? seriously? who gave this kid a computer.";
                 throw RuntimeError(expr.op, message);
             }
             return std::fmod(std::get<double>(left), std::get<double>(right));
@@ -335,17 +335,17 @@ LiteralValue Evaluator::operator()(const GetIndex& expr) const
         checkOperandType(expr.bracket, indexVal);
         int index = static_cast<int>(std::get<double>(indexVal));
         if(index < 0 || index >= (int)(*arrPtr) -> elements.size())
-            throw RuntimeError(expr.bracket, "Array index out of bounds.");
+            throw RuntimeError(expr.bracket, "Array index out of bounds \033[33m(why are you always reaching for things you can't have?)\033[0m");
         return (*arrPtr) -> elements[index];
     }
 
-    if (auto strPtr = std::get_if<std::string>(&arrVal))
+    if (auto strPtr = std::get_if<std::shared_ptr<FlintString>>(&arrVal))
     {
         checkOperandType(expr.bracket, indexVal);
         int index = static_cast<int>(std::get<double>(indexVal));
-        if(index < 0 || index >= (int)(*strPtr).length())
-            throw RuntimeError(expr.bracket, "Array index out of bounds.");
-        return std::string(1, (*strPtr)[index]);
+        if(index < 0 || index >= (int)(*strPtr) -> value.length())
+            throw RuntimeError(expr.bracket, "String index out of bounds \033[33m(why are you always reaching for things you can't have?)\033[0m");
+        return std::string(1, (*strPtr) -> value[index]);
     }
 
     throw RuntimeError(expr.bracket, "Only arrays or strings can be indexed.");
@@ -436,6 +436,6 @@ void Evaluator::checkOperandType(const Token& op, const Operands&... operands) c
 {
     if ((... && std::holds_alternative<double>(operands))) return;
 
-    std::string message = "Invalid operand type, operands must be numbers.";
+    std::string message = "compiler is disappointed in you \033[33m(pls go touch grass)\033[0m";
     throw RuntimeError(op, message);
 }
