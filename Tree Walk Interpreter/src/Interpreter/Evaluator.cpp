@@ -339,13 +339,13 @@ LiteralValue Evaluator::operator()(const GetIndex& expr) const
         return (*arrPtr) -> elements[index];
     }
 
-    if (auto strPtr = std::get_if<std::string>(&arrVal))
+    if (auto strPtr = std::get_if<std::shared_ptr<FlintString>>(&arrVal))
     {
         checkOperandType(expr.bracket, indexVal);
         int index = static_cast<int>(std::get<double>(indexVal));
-        if(index < 0 || index >= (int)(*strPtr).length())
+        if(index < 0 || index >= (int)(*strPtr) -> value.length())
             throw RuntimeError(expr.bracket, "Array index out of bounds.");
-        return std::string(1, (*strPtr)[index]);
+        return std::string(1, (*strPtr) -> value[index]);
     }
 
     throw RuntimeError(expr.bracket, "Only arrays or strings can be indexed.");

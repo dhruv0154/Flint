@@ -25,6 +25,7 @@ private:
     //──────────────────────────────────────────────────────────────────────────
     mutable bool isInsideLoop = false;
 
+
     //──────────────────────────────────────────────────────────────────────────
     // globals: the global (outermost) environment
     // Stores all top-level variable and function definitions.
@@ -50,6 +51,11 @@ private:
     mutable std::shared_ptr<Environment> environment;
 
 public:
+
+    mutable bool returning = false;
+    mutable LiteralValue returnValue = nullptr;
+    mutable bool breaking = false;
+    mutable bool continuing = false;
     //──────────────────────────────────────────────────────────────────────────
     // Statement Visitors: executes different statement types
     // Invoked by std::visit on Statement variant.
