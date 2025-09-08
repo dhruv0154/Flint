@@ -1,6 +1,7 @@
 #pragma once
 
 #include "chunk.h"
+#include "memory.h"
 
 #define STACK_MAX 256
 
@@ -16,11 +17,13 @@ class VM
 private:
     Chunk* chunk;
     uint8_t* ip;
-    Value stack[STACK_MAX];
-    Value* stackTop;
+    DynamicArray<Value> stack;
     InterpretResult run();
+    template<typename Op>
+    inline void binaryOp(Op op);
+    
 public:
     VM() = default;
-    InterpretResult interpret(Chunk* chunk);
+    InterpretResult interpret(const std::string source);
     ~VM() = default;
 };

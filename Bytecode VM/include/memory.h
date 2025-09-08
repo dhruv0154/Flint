@@ -26,6 +26,7 @@ public:
         return result;
     }
 
+
     template <typename T>
     static void freeArray(T* pointer) {
         delete[] pointer;
@@ -52,6 +53,11 @@ public:
             capacity = newCapacity;
         }
         data[count++] = value;
+    }
+
+    T pop(){ 
+        count--;
+        return data[count];
     }
     T* getData() { return data; }
     const T* getData() const { return data; }

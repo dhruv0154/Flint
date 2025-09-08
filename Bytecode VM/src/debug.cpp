@@ -27,14 +27,25 @@ int Disassembler::disassembleInstruction(Chunk* chunk, int offset)
         std::cout << std::setw(4) << std::setfill(' ') <<  chunk -> getLine(offset) << " ";
     }
     uint8_t instruction = chunk->getCode()[offset];
-    switch (instruction)
+    OpCode instructionCode = static_cast<OpCode>(instruction);
+    switch (instructionCode)
     {
-    case static_cast<uint8_t>(OpCode::OP_RETURN):
+    case OpCode::OP_RETURN:
         return simpleInstruction("OP_RETURN", offset);
-    case static_cast<uint8_t>(OpCode::OP_CONSTANT):
+    case OpCode::OP_CONSTANT:
         return constantInstruction("OP_CONSTANT", chunk, offset);
-     case static_cast<uint8_t>(OpCode::OP_CONSTANT_LONG):
+    case OpCode::OP_CONSTANT_LONG:
         return longConstantInstruction("OP_CONSTANT_LONG", chunk, offset);
+    case OpCode::OP_NEGATE:
+        return simpleInstruction("OP_NEGATE", offset);
+    case OpCode::OP_ADD:
+        return simpleInstruction("OP_ADD", offset);
+    case OpCode::OP_SUBTRACT:
+        return simpleInstruction("OP_SUBTRACT", offset);
+    case OpCode::OP_MULTIPLY:
+        return simpleInstruction("OP_MULTIPLY", offset);
+    case OpCode::OP_DIVIDE:
+        return simpleInstruction("OP_DIVIDE", offset);
     default:
         std::cout << "Unknown opcode: " << instruction;
         return offset + 1;

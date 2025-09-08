@@ -1,13 +1,20 @@
 #include <iostream>
+#include <functional>
 #include "common.h"
 #include "vm.h"
 #include "debug.h"
 
-InterpretResult VM::interpret(Chunk* chunk)
+template<typename Op>
+inline void VM::binaryOp(Op op) {
+    double b = stack.pop();
+    double a = stack.pop();
+    stack.push_back(op(a, b));
+}
+
+InterpretResult VM::interpret(const std::string source)
 {
-    this -> chunk = chunk;
-    ip = this -> chunk -> getCode().getData();
-    return run();
+    compile(source);
+    return InterpretResult::INTERPRET_OK;
 }
 
 InterpretResult VM::run()
@@ -19,20 +26,38 @@ InterpretResult VM::run()
     for(;;)
     {
         #ifdef DEBUG_TRACE_EXECUTION
+        std::cout << "    ";
+        for(auto slot = stack.getData(); slot < stack.getData() + stack.size(); slot++)
+        {
+            std::cout << "[ ";
+            std::cout << *slot;
+            std::cout << " ]";
+        }
+        std::cout << std::endl;
         disassembler.disassembleInstruction(chunk, (int)(ip -  chunk -> getCode().getData()));
         #endif
-        uint8_t instruction;
-        switch(instruction = readByte())
+        uint8_t instruction = readByte();
+        OpCode instructionCode = static_cast<OpCode>(instruction);
+        switch(instructionCode)
         {
-            case static_cast<uint8_t>(OpCode::OP_CONSTANT): {
+            case OpCode::OP_CONSTANT: {
                 Value constant = readConstant();
-                std::cout << constant;
-                std::cout << "\n";
+                stack.push_back(constant);
                 break;
             }
-            case static_cast<uint8_t>(OpCode::OP_RETURN): {
+            case OpCode::OP_RETURN: {
+                std::cout << stack.pop();
+                std::cout << "\n";
                 return InterpretResult::INTERPRET_OK;
             }
+
+            case OpCode::OP_NEGATE: stack[stack.size() - 1] = -stack[stack.size() - 1]; break;
+            case OpCode::OP_ADD: binaryOp(std::plus<>()); break;
+            case OpCode::OP_SUBTRACT: binaryOp(std::minus<>()); break;
+            case OpCode::OP_MULTIPLY: binaryOp(std::multiplies<>()); break;
+            case OpCode::OP_DIVIDE: binaryOp(std::divides<>()); break;
+
+
         }
     }
 }

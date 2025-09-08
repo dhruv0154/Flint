@@ -1,25 +1,5 @@
-class Animal
+for(let i = 0; i < 10; i = i + 1)
 {
-    speak()
-    {
-        print("From base class" + "\n");
-    }
+    if(i == 5) continue;
+    print(i, "\n");
 }
-
-class Dog < Animal
-{
-    init(name)
-    {
-        this.name = name;
-        this.x = 0;
-    }
-    speak()
-    {
-        super.speak();
-        print(this.name + " says " + " woof" + "\n");
-    }
-}
-
-let scooby = Dog("Scooby");
-scooby.x = 10;
-scooby.speak();

@@ -3,13 +3,11 @@
 #include "Flint/Flint.h"
 #include "Flint/Parser/Value.h"
 #include "Flint/ASTNodes/ExpressionNode.h"
-#include "Flint/Exceptions/BreakException.h"
-#include "Flint/Exceptions/ContinueException.h"
+// removed includes for ReturnException/BreakException/ContinueException
 #include "Flint/Exceptions/RuntimeError.h"
 #include "Flint/Callables/FlintCallable.h"
 #include "Flint/Callables/Functions/NativeFunction.h"
 #include "Flint/Callables/Functions/FlintFunction.h"
-#include "Flint/Exceptions/ReturnException.h"
 #include "Flint/Callables/Classes/FlintClass.h"
 #include "Flint/Callables/Classes/FlintInstance.h"
 #include "Flint/FlintArray.h"
@@ -25,6 +23,15 @@ Interpreter::Interpreter()
     globals = std::make_shared<Environment>();
     environment = globals;
     evaluator = std::make_unique<Evaluator>(*this);
+
+    // Initialize control-flow flags
+    // NOTE: these are members of Interpreter; if you prefer, add them directly
+    // as mutable members in Interpreter.h. Here we rely on them existing.
+    returning = false;
+    returnValue = nullptr;
+    breaking = false;
+    continuing = false;
+    isInsideLoop = false;
 
     // Define clock()
     globals -> define("clock", std::make_shared<NativeFunction>(
@@ -154,6 +161,12 @@ void Interpreter::interpret(std::vector<std::shared_ptr<Statement>> statements) 
     for (std::shared_ptr<Statement> s : statements)
     {
         try {
+            // clear control-flow flags per top-level statement
+            const_cast<Interpreter*>(this)->returning = false;
+            const_cast<Interpreter*>(this)->returnValue = nullptr;
+            const_cast<Interpreter*>(this)->breaking = false;
+            const_cast<Interpreter*>(this)->continuing = false;
+
             execute(s);
         } catch (const RuntimeError& error) {
             Flint::runtimeError(error);
@@ -168,6 +181,11 @@ void Interpreter::interpret(std::vector<std::shared_ptr<Statement>> statements) 
 // ─────────────────────────────────────────────────────────────────────────────
 void Interpreter::execute(std::shared_ptr<Statement> statement) const
 {
+    // If a return/break/continue was set by an earlier statement, don't execute more
+    if (const_cast<Interpreter*>(this)->returning ||
+        const_cast<Interpreter*>(this)->breaking)
+        return;
+
     std::visit(*this, *statement.get());
 }
 
@@ -181,7 +199,14 @@ void Interpreter::executeBlock(std::vector<std::shared_ptr<Statement>> statement
     {
         for (const auto& statement : statements)
         {
+            // Check flags before executing each statement so returns/breaks propagate
+            if (const_cast<Interpreter*>(this)->returning ||
+                const_cast<Interpreter*>(this)->breaking)
+                break;
+
             execute(statement);
+            
+            if (const_cast<Interpreter*>(this)->continuing) break;
         } 
     }
     catch (...) 
@@ -271,18 +296,33 @@ void Interpreter::operator()(const WhileStmt& stmt) const
     isInsideLoop = true;
     while (evaluator -> isTruthy(evaluator -> evaluate(stmt.condition)))
     { 
-        try
-        {
-            execute(stmt.statement);
-        }
-        catch(const BreakException& e)
-        {
+        // If a return/break is already set, stop the loop
+        if (const_cast<Interpreter*>(this)->returning) break;
+        if (const_cast<Interpreter*>(this)->breaking) {
+            // consuming the break here
+            const_cast<Interpreter*>(this)->breaking = false;
             break;
         }
-        catch(const ContinueException& e)
-        {
+        if (const_cast<Interpreter*>(this)->continuing) {
+            // consume the continue and proceed to next iteration
+            const_cast<Interpreter*>(this)->continuing = false;
             continue;
-        } 
+        }
+
+        execute(stmt.statement);
+
+        // After executing the body, check flags and act accordingly
+        if (const_cast<Interpreter*>(this)->returning) break;
+
+        if (const_cast<Interpreter*>(this)->breaking) {
+            const_cast<Interpreter*>(this)->breaking = false;
+            break;
+        }
+
+        if (const_cast<Interpreter*>(this)->continuing) {
+            const_cast<Interpreter*>(this)->continuing = false;
+            continue;
+        }
     }
     isInsideLoop = previousInsideLoop;
 }
@@ -300,28 +340,34 @@ void Interpreter::operator()(const ReturnStmt &stmt) const
     LiteralValue val = nullptr;
     if(stmt.val) val = evaluator -> evaluate(stmt.val);
      
-    throw ReturnException(val);
+    // set interpreter-level return flag and value (no exceptions)
+    const_cast<Interpreter*>(this)->returning = true;
+    const_cast<Interpreter*>(this)->returnValue = val;
+    return;
 }
 
 void Interpreter::operator()(const BreakStmt& stmt) const
 {
     if(!isInsideLoop) throw RuntimeError(stmt.keyword, "Cannot use 'break' outside of a loop");
-    throw BreakException();
+    const_cast<Interpreter*>(this)->breaking = true;
+    return;
 }
 
 void Interpreter::operator()(const ContinueStmt& stmt) const
 {
     if(!isInsideLoop) throw RuntimeError(stmt.keyword, "Cannot use 'continue' outside of a loop");
-    throw ContinueException();
+    const_cast<Interpreter*>(this)->continuing = true;
+    return;
 }
 
 void Interpreter::operator()(const TryCatchContinueStmt& stmt) const
 {
-    try
-    {
-        execute(stmt.body);
+    // Execute the wrapped body. If it set the continuing flag, swallow it here
+    execute(stmt.body);
+    if (const_cast<Interpreter*>(this)->continuing) {
+        // swallow the continue so outer code (like increment) still runs
+        const_cast<Interpreter*>(this)->continuing = false;
     }
-    catch(const ContinueException& e) {}
 }
 
 // Expression statement: evaluates expression and discards result (side effects only)
