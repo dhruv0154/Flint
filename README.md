@@ -76,6 +76,6 @@ Future plans include:
 
 A more comprehensive standard library.
 
-Object-oriented features (classes).
+Object-oriented features.
 
 Integration into the planned 3D Physics Engine.
