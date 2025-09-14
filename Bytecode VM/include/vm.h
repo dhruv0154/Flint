@@ -2,8 +2,7 @@
 
 #include "chunk.h"
 #include "memory.h"
-
-#define STACK_MAX 256
+#include "compiler.h"
 
 enum class InterpretResult
 { 
@@ -23,7 +22,8 @@ private:
     inline void binaryOp(Op op);
     
 public:
+    Compiler compiler;
     VM() = default;
-    InterpretResult interpret(const std::string source);
+    InterpretResult interpret(const std::string &source);
     ~VM() = default;
 };

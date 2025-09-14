@@ -7,6 +7,9 @@
 #include "vm.h"
 
 VM vm;
+static void repl();
+static void runFile(const std::string &path);
+static std::string readFile(const std::string &path);
 
 int main(int argc, char const *argv[])
 {
@@ -27,7 +30,7 @@ static void repl()
     std::string line;
     while(true){
         std::cout << "> ";
-        if(std::getline(std::cin, line)){
+        if(!std::getline(std::cin, line)){
             std::cout << "\n";
             break;
         }
@@ -39,8 +42,7 @@ static void runFile(const std::string &path)
 {
     std::string src = readFile(path);
     InterpretResult result = vm.interpret(src);
-
-
+    
     if(result == InterpretResult::INTERPRET_COMPILE_ERROR) exit(65);
     if(result == InterpretResult::INTERPRET_RUNTIME_ERROR) exit(70);
 }

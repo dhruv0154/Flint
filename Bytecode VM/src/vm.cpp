@@ -1,6 +1,7 @@
 #include <iostream>
 #include <functional>
 #include "common.h"
+#include "compiler.h"
 #include "vm.h"
 #include "debug.h"
 
@@ -11,10 +12,21 @@ inline void VM::binaryOp(Op op) {
     stack.push_back(op(a, b));
 }
 
-InterpretResult VM::interpret(const std::string source)
+InterpretResult VM::interpret(const std::string &source)
 {
-    compile(source);
-    return InterpretResult::INTERPRET_OK;
+    Chunk chunk;
+
+    if(!compiler.compile(source, &chunk))
+    {
+        return InterpretResult::INTERPRET_COMPILE_ERROR;
+    }
+
+    this -> chunk = &chunk;
+    ip = this -> chunk -> getCode().getData();
+
+    InterpretResult result = run();
+
+    return result;
 }
 
 InterpretResult VM::run()
