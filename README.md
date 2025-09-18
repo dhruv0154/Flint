@@ -35,37 +35,29 @@ Getting Started
 To get a local copy up and running, follow these simple steps.
 
 Prerequisites
-You will need a C++17 (or later) compatible compiler and CMake.
+You will need a C++17 (or later) compatible compiler and CMake with ninja.
 
 g++ / clang
 
 cmake >= 3.10
 
-Build & Run
+Build & Run:
+
 Clone the repo
 
-Bash
-
+Bash:
 git clone https://github.com/dhruv0154/Flint.git
-Create a build directory
 
-Bash
+Bash:
+cd "Tree Walk Interpreter"
+Run the buildAndTest.bat file it will automatically run the test.flint code after compiling the source.
 
-cd flint
-mkdir build && cd build
-Run CMake and build the project
-
-Bash
-
-cmake ..
-make
-Run the Flint interpreter!
-
-Bash
-
-./flint            # To run the REPL
+Bash:
+./flint.exe            # To run the REPL
 ./flint myscript.flint # To run a .flint file
-Project Status & Roadmap
+
+
+Project Status & Roadmap:
 Flint is an actively developed project.
 
 Current Stage: Fully functional Tree-Walk Interpreter. This version is stable and implements the full feature set described above.
