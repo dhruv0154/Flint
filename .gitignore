@@ -1,11 +1,8 @@
-# Ignore all text files
-*.txt
+CMakeCache.txt
 
 # Ignore VSCode settings
 .vscode/
 
-# Ignore batch files
-*.bat
 
 # Ignore build output
 build/
