@@ -1,4 +1,4 @@
-Flint Programming Language
+## Flint Programming Language
 
 A lightweight, object-oriented, interpreted programming language built from scratch in modern C++.
 
